@@ -22,6 +22,11 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   --nav-h: 72px;
   --safe-b: env(safe-area-inset-bottom, 0px);
+  /* Status bar / Dynamic Island when opened from the iPhone home screen. */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --gutter: clamp(16px, 4.5vw, 22px);
   color-scheme: dark;
 }
 
@@ -981,4 +986,81 @@ ol.steps li::before {
 }
 .pause-screen > .col:last-child {
   max-width: 528px;
+}
+
+/* ---------- iPhone fit: safe areas and touch targets ---------- */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  overscroll-behavior-y: none;
+}
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  touch-action: manipulation;
+}
+.screen {
+  padding: calc(16px + var(--safe-t)) calc(var(--gutter) + var(--safe-r)) calc(var(--nav-h) + var(--safe-b) + 24px) calc(var(--gutter) + var(--safe-l));
+}
+.overlay {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.topbar {
+  padding: calc(10px + var(--safe-t)) calc(var(--gutter) + var(--safe-r)) 10px calc(var(--gutter) + var(--safe-l));
+  min-height: calc(64px + var(--safe-t));
+}
+.overlay-body {
+  padding-left: calc(var(--gutter) + var(--safe-l));
+  padding-right: calc(var(--gutter) + var(--safe-r));
+}
+.player {
+  padding: calc(10px + var(--safe-t)) calc(var(--gutter) + var(--safe-r)) calc(20px + var(--safe-b)) calc(var(--gutter) + var(--safe-l));
+}
+.player > .row.between:first-child {
+  min-height: 52px;
+  gap: 8px;
+}
+/* Apple's minimum comfortable touch target is 44pt; give the top-row buttons a bit more. */
+.icon-btn {
+  width: 46px;
+  height: 46px;
+  position: relative;
+}
+.icon-btn::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+.icon-btn:active,
+.btn:active,
+.card.tap:active {
+  transition-duration: 0.05s;
+}
+.screen-header h1 {
+  font-size: clamp(26px, 7.4vw, 32px);
+}
+.nav button {
+  min-height: 52px;
+}
+.sheet {
+  max-height: calc(100dvh - var(--safe-t) - 24px);
+  padding-left: calc(var(--gutter) + var(--safe-l));
+  padding-right: calc(var(--gutter) + var(--safe-r));
+}
+.composer {
+  padding-left: calc(var(--gutter) + var(--safe-l));
+  padding-right: calc(var(--gutter) + var(--safe-r));
+}
+.pause-screen {
+  padding-top: calc(80px + var(--safe-t));
+}
+@media (min-width: 420px) {
+  .tap-circle {
+    width: min(76vw, 330px);
+  }
 }
