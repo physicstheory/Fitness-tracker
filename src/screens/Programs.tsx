@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronRight, Play, Sparkles, Trash2, Plus } from "lucide-react";
+import { Check, ChevronRight, Play, RotateCcw, Sparkles, Trash2, Plus } from "lucide-react";
 import { AIBadge, Overlay, Sheet, setLabel } from "../components/ui";
 import { allPrograms, findExercise, findProgram, setState, useAppState } from "../store";
 import { useNav } from "../nav";
@@ -101,7 +101,7 @@ export function ProgramDetail({ id }: { id: string }) {
   const state = useAppState();
   const nav = useNav();
   const program = findProgram(id, state);
-  const [confirm, setConfirm] = useState<"delete" | "switch" | null>(null);
+  const [confirm, setConfirm] = useState<"delete" | "switch" | "restart" | null>(null);
   if (!program) return <Overlay title="Program">Program not found.</Overlay>;
 
   const isActive = state.active?.programId === program.id;
@@ -165,6 +165,11 @@ export function ProgramDetail({ id }: { id: string }) {
           <Check size={18} /> Start this program
         </button>
       )}
+      {isActive && completed.size > 0 && (
+        <button className="btn sm ghost" onClick={() => setConfirm("restart")}>
+          <RotateCcw size={14} /> Restart program from Week 1
+        </button>
+      )}
 
       {program.notes.length > 0 && (
         <div className="card flat col">
@@ -208,6 +213,17 @@ export function ProgramDetail({ id }: { id: string }) {
         </div>
       ))}
 
+      <Sheet open={confirm === "restart"} onClose={() => setConfirm(null)} title="Restart program?">
+        <div className="col" style={{ gap: 10 }}>
+          <p className="muted">All sessions are marked as not done and you start again from Week 1. Your workout history, streaks and records stay.</p>
+          <button className="btn primary block" onClick={activate}>
+            Restart from Week 1
+          </button>
+          <button className="btn ghost block" onClick={() => setConfirm(null)}>
+            Cancel
+          </button>
+        </div>
+      </Sheet>
       <Sheet open={confirm === "switch"} onClose={() => setConfirm(null)} title="Switch program?">
         <div className="col" style={{ gap: 10 }}>
           <p className="muted">Your current program's progress will be replaced. Your workout history stays.</p>

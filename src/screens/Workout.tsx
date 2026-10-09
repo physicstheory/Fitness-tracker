@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Check, Minus, Music, Pause, Play, Plus, SkipForward, Trophy, X } from "lucide-react";
+import { BookOpen, Check, Minus, Music, Pause, Play, Plus, RotateCcw, SkipForward, Square, Trophy, X } from "lucide-react";
 import { Confetti, ProgressRing, Sheet, setLabel } from "../components/ui";
 import { ExerciseGuide } from "../components/ExerciseGuide";
 import { WorkoutMusic, useSpotifyConnected } from "../components/Music";
@@ -41,6 +41,11 @@ export function Workout({ programId, dayId, exerciseId }: { programId?: string; 
   const [readyEndsAt, setReadyEndsAt] = useState(0);
   const [timerStart, setTimerStart] = useState(0);
   const [paused, setPaused] = useState<number | null>(null); // elapsed ms when paused
+  // Whole-workout pause: freezes the workout clock, rest timer and timed sets.
+  const [pausedAt, setPausedAt] = useState<number | null>(null);
+  const [pausedTotal, setPausedTotal] = useState(0);
+  const [restLeftAtPause, setRestLeftAtPause] = useState(0);
+  const [timedPausedByUs, setTimedPausedByUs] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showMusic, setShowMusic] = useState(true);
   const hasMusic = useSpotifyConnected() || Boolean(state.settings.workoutMusic);
@@ -57,7 +62,7 @@ export function Workout({ programId, dayId, exerciseId }: { programId?: string; 
 
   const timing = phase === "rest" || (phase === "active" && isTime && (readyEndsAt > 0 || timerStart > 0));
   const now = useNow(timing || phase === "active", 100);
-  useWakeLock(phase === "active" || phase === "rest");
+  useWakeLock((phase === "active" || phase === "rest") && pausedAt === null);
 
   const next = useCallback(
     (p: Pos): Pos | null => {
@@ -99,6 +104,7 @@ export function Workout({ programId, dayId, exerciseId }: { programId?: string; 
 
   // Rest countdown + timed set countdown.
   useEffect(() => {
+    if (pausedAt !== null) return;
     if (phase === "rest") {
       const left = Math.ceil((restEndsAt - now) / 1000);
       if (left <= 3 && left > 0 && left !== lastTick.current) {
@@ -135,11 +141,11 @@ export function Workout({ programId, dayId, exerciseId }: { programId?: string; 
       }
       if (left <= 0) completeSet(target);
     }
-  }, [now, phase, restEndsAt, readyEndsAt, timerStart, paused, target, isTime, completeSet]);
+  }, [now, phase, restEndsAt, readyEndsAt, timerStart, paused, target, isTime, completeSet, pausedAt]);
 
   // Keyboard: space/enter counts a rep on desktop.
   useEffect(() => {
-    if (phase !== "active" || isTime) return;
+    if (phase !== "active" || isTime || pausedAt !== null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "Space" || e.code === "ArrowUp") {
         e.preventDefault();
@@ -168,6 +174,50 @@ export function Workout({ programId, dayId, exerciseId }: { programId?: string; 
     setPhase("active");
   }
 
+  function pauseWorkout() {
+    const t = Date.now();
+    setPausedAt(t);
+    if (phase === "rest") setRestLeftAtPause(Math.max(0, restEndsAt - t));
+    if (readyEndsAt) setReadyEndsAt(0); // restart the get-ready countdown on resume
+    if (timerStart && paused === null) {
+      setPaused(t - timerStart);
+      setTimedPausedByUs(true);
+    }
+  }
+
+  function resumeWorkout() {
+    if (pausedAt === null) return;
+    const t = Date.now();
+    setPausedTotal((p) => p + (t - pausedAt));
+    if (phase === "rest") setRestEndsAt(t + restLeftAtPause);
+    if (timedPausedByUs && paused !== null) {
+      setTimerStart(t - paused);
+      setPaused(null);
+    }
+    setTimedPausedByUs(false);
+    lastTick.current = -1;
+    setPausedAt(null);
+  }
+
+  function restartSet() {
+    if (pausedAt !== null) setPausedTotal((p) => p + (Date.now() - pausedAt));
+    resetSet();
+    setTimedPausedByUs(false);
+    setPausedAt(null);
+    setPhase("active");
+  }
+
+  function restartWorkout() {
+    resetSet();
+    setTimedPausedByUs(false);
+    setResults(items.map((it) => it.sets.map(() => undefined)));
+    setPos({ i: 0, s: 0 });
+    setStartedAt(Date.now());
+    setPausedTotal(0);
+    setPausedAt(null);
+    setPhase("active");
+  }
+
   function addSet() {
     setItems((its) => its.map((it, i) => (i === pos.i ? { ...it, sets: [...it.sets, it.sets[it.sets.length - 1] ?? 0] } : it)));
     setResults((r) => r.map((row, i) => (i === pos.i ? [...row, undefined] : row)));
@@ -175,7 +225,8 @@ export function Workout({ programId, dayId, exerciseId }: { programId?: string; 
 
   const elapsedTimed = timerStart ? (paused ?? now - timerStart) / 1000 : 0;
   const totalDone = results.flat().reduce<number>((a, v) => a + (v ?? 0), 0);
-  const durationSec = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0;
+  const workoutElapsed = (at: number) => (startedAt ? (at - startedAt - pausedTotal - (pausedAt !== null ? at - pausedAt : 0)) / 1000 : 0);
+  const durationSec = Math.round(workoutElapsed(Date.now()));
 
   function save() {
     const log: WorkoutLog = {
@@ -235,11 +286,16 @@ export function Workout({ programId, dayId, exerciseId }: { programId?: string; 
             <button className="icon-btn" onClick={() => (phase === "intro" ? nav.pop() : phase === "summary" ? nav.pop() : setConfirmExit(true))} aria-label="Close">
               <X size={20} />
             </button>
+            {(phase === "active" || phase === "rest") && (
+              <button className="icon-btn" onClick={pauseWorkout} aria-label="Pause workout">
+                <Pause size={18} />
+              </button>
+            )}
             <div className="col grow" style={{ gap: 0, alignItems: "center" }}>
               <span className="eyebrow ellipsis" style={{ maxWidth: "100%" }}>
                 {program?.name ?? "Quick workout"}
               </span>
-              {startedAt > 0 && phase !== "summary" && <span className="num small muted">{fmtTime((now - startedAt) / 1000)}</span>}
+              {startedAt > 0 && phase !== "summary" && <span className="num small muted">{fmtTime(workoutElapsed(now))}</span>}
             </div>
             {hasMusic && (
               <button
@@ -424,6 +480,37 @@ export function Workout({ programId, dayId, exerciseId }: { programId?: string; 
       <Sheet open={showGuide} onClose={() => setShowGuide(false)} title={exercise?.name}>
         {exercise && <ExerciseGuide exercise={exercise} compact />}
       </Sheet>
+      {pausedAt !== null && (
+        <div className="pause-screen" role="dialog" aria-modal="true" aria-label="Workout paused">
+          <div className="col" style={{ alignItems: "center", gap: 6 }}>
+            <span className="eyebrow">Workout paused</span>
+            <span className="big-time num">{fmtTime(workoutElapsed(now))}</span>
+            <span className="small muted">
+              {exercise?.name} · set {pos.s + 1} of {item?.sets.length}
+              {phase === "rest" ? ` · ${fmtTime(restLeftAtPause / 1000)} rest left` : ""}
+            </span>
+          </div>
+          <div className="col" style={{ gap: 10, width: "100%" }}>
+            <button className="btn primary lg block" onClick={resumeWorkout}>
+              <Play size={20} fill="#fff" /> Resume
+            </button>
+            <button className="btn block" onClick={restartSet}>
+              <RotateCcw size={16} /> Restart this set
+            </button>
+            <button className="btn block" onClick={restartWorkout}>
+              <RotateCcw size={16} /> Restart workout from the beginning
+            </button>
+            <button
+              className="btn ghost block danger"
+              onClick={() => {
+                setConfirmExit(true);
+              }}
+            >
+              <Square size={14} /> End workout
+            </button>
+          </div>
+        </div>
+      )}
       <Sheet open={confirmExit} onClose={() => setConfirmExit(false)} title="End workout?">
         <div className="col" style={{ gap: 10 }}>
           <p className="muted">You can save the sets you've done so far or discard this session.</p>
@@ -431,6 +518,7 @@ export function Workout({ programId, dayId, exerciseId }: { programId?: string; 
             className="btn primary block"
             onClick={() => {
               setConfirmExit(false);
+              resumeWorkout();
               setPhase("summary");
             }}
           >

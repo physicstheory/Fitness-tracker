@@ -963,3 +963,22 @@ ol.steps li::before {
     transition-duration: 0.01ms !important;
   }
 }
+
+.pause-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: calc(80px + env(safe-area-inset-top, 0px)) 16px calc(28px + var(--safe-b));
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: fade 0.2s ease;
+}
+.pause-screen > .col:last-child {
+  max-width: 528px;
+}
