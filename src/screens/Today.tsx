@@ -1,10 +1,15 @@
-import { ChevronRight, Flame, PauseCircle, Play, Settings as Cog, Sparkles, Target, Plus, Zap } from "lucide-react";
-import { ProgressRing } from "../components/ui";
+import { ChevronRight, Dumbbell, Flame, PauseCircle, Play, Settings as Cog, Sparkles, Target, Plus, Zap } from "lucide-react";
+import { useState } from "react";
+import { ProgressRing, Sheet } from "../components/ui";
+import { EquipmentPicker } from "../components/EquipmentPicker";
+import { EQUIPMENT, equipmentName } from "../data/equipment";
+import type { Exercise } from "../types";
 import { addDays, dailyTotals, dayKey, fmtTime, goalProgress, streak } from "../lib/stats";
-import { setState, findExercise, findProgram, useAppState } from "../store";
+import { allExercises, canDo, setState, findExercise, findProgram, useAppState } from "../store";
 import { useNav } from "../nav";
 
-const QUICK = ["push-up", "squat", "sit-up", "plank", "burpee", "pull-up"];
+// Quick log favourites, in order; ones needing equipment the user lacks are skipped.
+const QUICK = ["push-up", "squat", "db-bench-press", "goblet-squat", "db-row", "bench-press", "back-squat", "deadlift", "kb-swing", "pull-up", "sit-up", "plank", "burpee", "lunge"];
 
 export function Today() {
   const state = useAppState();
@@ -23,7 +28,12 @@ export function Today() {
   const now = new Date();
   const monday = addDays(now, -((now.getDay() + 6) % 7));
   const week = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
-  const quick = QUICK.map((id) => findExercise(id, state)).filter(Boolean).concat(state.customExercises.slice(0, 2));
+  const quick = QUICK.map((id) => findExercise(id, state))
+    .filter((e): e is Exercise => !!e && canDo(e, state))
+    .concat(state.customExercises.filter((e) => canDo(e, state)).slice(0, 2));
+  const [editEquipment, setEditEquipment] = useState(false);
+  const owned = state.profile.equipmentList ?? [];
+  const available = allExercises(state).filter((e) => canDo(e, state)).length;
 
   return (
     <div className="screen">
@@ -213,6 +223,30 @@ export function Today() {
         </>
       )}
 
+      <button className="card tap col" style={{ gap: 10 }} onClick={() => setEditEquipment(true)}>
+        <div className="row between">
+          <div className="row">
+            <Dumbbell size={20} color="var(--accent)" />
+            <span style={{ fontWeight: 750 }}>My equipment</span>
+          </div>
+          <span className="small muted" style={{ fontWeight: 650 }}>
+            Edit
+          </span>
+        </div>
+        <div className="chips">
+          {owned.length ? (
+            owned.map((id) => (
+              <span key={id} className="chip accent">
+                {EQUIPMENT.find((e) => e.id === id)?.emoji} {equipmentName(id)}
+              </span>
+            ))
+          ) : (
+            <span className="chip">🙌 Bodyweight only — tap to add dumbbells, a bench and more</span>
+          )}
+        </div>
+        <span className="small muted">{available} exercises available with your equipment</span>
+      </button>
+
       <div className="grid-2">
         <button className="card tap col" style={{ gap: 8 }} onClick={() => nav.push({ name: "import" })}>
           <Plus size={22} color="var(--violet)" />
@@ -225,6 +259,15 @@ export function Today() {
           <span className="small muted">Form tips, plans and motivation</span>
         </button>
       </div>
+      <Sheet open={editEquipment} onClose={() => setEditEquipment(false)} title="My equipment">
+        <div className="col" style={{ gap: 12 }}>
+          <p className="small muted">Tick what you have at home or at your gym. RepRise shows exercises you can do and flags programs that need something you don't have.</p>
+          <EquipmentPicker />
+          <button className="btn primary block" onClick={() => setEditEquipment(false)}>
+            Done
+          </button>
+        </div>
+      </Sheet>
     </div>
   );
 }

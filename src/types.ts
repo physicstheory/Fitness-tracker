@@ -12,6 +12,14 @@ export interface Exercise {
   commonMistakes: string[];
   defaultRestSec: number;
   emoji: string;
+  /** How many of the first muscleGroups are primary movers (default 1). */
+  primaryCount?: number;
+  /** Form animation id (see lib/motions); inferred from the name when missing. */
+  motion?: string;
+  /** Equipment ids needed (see data/equipment). Empty = bodyweight. */
+  equipmentIds?: string[];
+  /** Log a weight with each set. */
+  weighted?: boolean;
 }
 
 export interface ProgramItem {
@@ -20,6 +28,8 @@ export interface ProgramItem {
   sets: number[];
   restSec: number;
   notes: string;
+  /** Optional target weight per set, in the user's units. */
+  weights?: number[];
 }
 
 export interface ProgramDay {
@@ -49,6 +59,9 @@ export interface Program {
 export interface SetLog {
   target: number;
   actual: number;
+  /** Load used, in the units chosen at the time. */
+  weight?: number;
+  unit?: "kg" | "lb";
 }
 
 export interface ExerciseLog {
@@ -111,6 +124,8 @@ export interface Profile {
   age?: number;
   limitations: string;
   equipment: string;
+  /** Structured equipment the user owns (ids from data/equipment). */
+  equipmentList: string[];
 }
 
 export interface Settings {
@@ -129,6 +144,7 @@ export interface Settings {
   /** Auto pace source: the user's average tap speed per exercise, or a fixed pace. */
   autoPace: "average" | "fixed";
   autoPaceSec: number;
+  units: "kg" | "lb";
 }
 
 /** A workout that was paused and saved to finish later. */
@@ -139,6 +155,7 @@ export interface SavedWorkout {
   title: string;
   items: ProgramItem[];
   results: (number | null)[][];
+  weights?: (number | null)[][];
   pos: { i: number; s: number };
   phase: "active" | "rest" | "summary";
   count: number;

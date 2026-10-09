@@ -7,6 +7,7 @@ import { getState, setState, useAppState } from "../store";
 import type { Exercise } from "../types";
 import { AIBadge, AILoading } from "./ui";
 import { useAIAvailable } from "../hooks";
+import { ExerciseVisual } from "./ExerciseVisual";
 
 /** Built-in how-to plus an AI guide personalised to the user's profile and history. */
 export function ExerciseGuide({ exercise, compact = false }: { exercise: Exercise; compact?: boolean }) {
@@ -35,6 +36,7 @@ export function ExerciseGuide({ exercise, compact = false }: { exercise: Exercis
 
   return (
     <div className="col" style={{ gap: 16 }}>
+      <ExerciseVisual exercise={exercise} compact={compact} />
       {!guide && (
         <>
           {exercise.instructions.length > 0 && (

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BarChart3, ChevronRight, Medal, Trash2 } from "lucide-react";
 import { BarChart, Empty, Sheet } from "../components/ui";
-import { addDays, bestSet, dailyTotals, fmtDuration, lifetimeTotal, logTotal, streak } from "../lib/stats";
+import { addDays, bestSet, bestWeight, dailyTotals, fmtDuration, lifetimeTotal, logTotal, streak } from "../lib/stats";
 import { allExercises, findExercise, setState, useAppState } from "../store";
 import { useNav } from "../nav";
 import type { WorkoutLog } from "../types";
@@ -117,11 +117,13 @@ export function Progress() {
                 <div className="col" style={{ alignItems: "flex-end", gap: 0 }}>
                   <span className="row num" style={{ gap: 4, fontWeight: 800 }}>
                     <Medal size={15} color="var(--accent-2)" />
-                    {bestSet(logs, e.id)}
-                    {e.type === "time" ? "s" : ""}
+                    {(() => {
+                      const w = e.weighted ? bestWeight(logs, e.id) : null;
+                      return w ? `${w.weight}${w.unit ?? state.settings.units}` : `${bestSet(logs, e.id)}${e.type === "time" ? "s" : ""}`;
+                    })()}
                   </span>
                   <span className="faint" style={{ fontSize: 11 }}>
-                    best set
+                    {e.weighted && bestWeight(logs, e.id) ? "heaviest" : "best set"}
                   </span>
                 </div>
               </button>
@@ -185,6 +187,7 @@ export function Progress() {
                         {s.actual}
                         {ex?.type === "time" ? "s" : ""}
                         {s.target ? ` / ${s.target}` : ""}
+                        {s.weight ? ` × ${s.weight}${s.unit ?? ""}` : ""}
                       </span>
                     ))}
                   </div>

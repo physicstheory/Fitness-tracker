@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Check, ChevronRight, Play, RotateCcw, Sparkles, Trash2, Plus } from "lucide-react";
 import { AIBadge, Overlay, Sheet, setLabel } from "../components/ui";
-import { allPrograms, findExercise, findProgram, setState, useAppState } from "../store";
+import { allPrograms, findExercise, findProgram, missingEquipment, setState, useAppState } from "../store";
+import { equipmentName } from "../data/equipment";
 import { useNav } from "../nav";
 import type { Program } from "../types";
 
@@ -62,6 +63,7 @@ export function Programs() {
 }
 
 function ProgramCard({ program, progress, onOpen }: { program: Program; progress?: number; onOpen: () => void }) {
+  const missing = missingEquipment(program);
   const exercises = [...new Set(program.days.flatMap((d) => d.items.map((i) => i.exerciseId)))];
   return (
     <button className="card tap col" style={{ gap: 10, borderLeft: `5px solid ${program.color}` }} onClick={onOpen}>
@@ -88,6 +90,11 @@ function ProgramCard({ program, progress, onOpen }: { program: Program; progress
         </span>
         {program.source !== "builtin" && <AIBadge label={program.source === "ai-goal" ? "AI PLAN" : "AI IMPORT"} />}
       </div>
+      {missing.length > 0 && (
+        <span className="small" style={{ color: "var(--warn)", fontWeight: 650 }}>
+          Needs {missing.map(equipmentName).join(", ")}
+        </span>
+      )}
       {progress !== undefined && (
         <div className="bar">
           <div style={{ width: `${progress * 100}%` }} />

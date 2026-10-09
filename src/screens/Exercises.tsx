@@ -2,33 +2,53 @@ import { useState } from "react";
 import { ChevronRight, Play, Search } from "lucide-react";
 import { BarChart, Overlay } from "../components/ui";
 import { ExerciseGuide } from "../components/ExerciseGuide";
-import { bestSet, dailyTotals, lifetimeTotal } from "../lib/stats";
-import { allExercises, findExercise, useAppState } from "../store";
+import { bestSet, bestWeight, dailyTotals, lifetimeTotal } from "../lib/stats";
+import { allExercises, canDo, findExercise, useAppState } from "../store";
+import { equipmentName } from "../data/equipment";
 import { useNav } from "../nav";
 
 export function Library() {
   const state = useAppState();
   const nav = useNav();
   const [q, setQ] = useState("");
-  const list = allExercises(state).filter((e) => (e.name + e.muscleGroups.join(" ")).toLowerCase().includes(q.toLowerCase()));
+  const [filter, setFilter] = useState<"available" | "all">("available");
+  const list = allExercises(state)
+    .filter((e) => (e.name + e.muscleGroups.join(" ") + e.equipment).toLowerCase().includes(q.toLowerCase()))
+    .filter((e) => filter === "all" || canDo(e, state));
   return (
     <Overlay title="Exercise library">
       <div className="row card flat" style={{ padding: "4px 14px" }}>
         <Search size={18} className="faint" />
-        <input className="input" style={{ background: "transparent", border: 0, padding: "10px 0" }} placeholder="Search exercises or muscles" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="input" style={{ background: "transparent", border: 0, padding: "10px 0" }} placeholder="Search exercises, muscles or equipment" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
+      <div className="seg">
+        <button className={filter === "available" ? "on" : ""} onClick={() => setFilter("available")}>
+          With my equipment
+        </button>
+        <button className={filter === "all" ? "on" : ""} onClick={() => setFilter("all")}>
+          All exercises
+        </button>
+      </div>
+      {list.length === 0 && <p className="small muted" style={{ textAlign: "center" }}>No matches. Try "All exercises" or add equipment on the Today screen.</p>}
       <div className="card flat list" style={{ padding: "4px 16px" }}>
-        {list.map((e) => (
-          <button key={e.id} className="list-item" onClick={() => nav.push({ name: "exercise", id: e.id })}>
-            <span className="emoji-badge">{e.emoji}</span>
-            <div className="grow" style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 700 }}>{e.name}</div>
-              <div className="small muted ellipsis">{e.muscleGroups.join(", ") || e.equipment}</div>
-            </div>
-            {state.guides[e.id] && <span className="chip accent">AI</span>}
-            <ChevronRight size={18} className="faint" />
-          </button>
-        ))}
+        {list.map((e) => {
+          const ok = canDo(e, state);
+          return (
+            <button key={e.id} className="list-item" onClick={() => nav.push({ name: "exercise", id: e.id })} style={ok ? undefined : { opacity: 0.6 }}>
+              <span className="emoji-badge">{e.emoji}</span>
+              <div className="grow" style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 700 }}>
+                  {e.name} {e.weighted && <span className="chip" style={{ padding: "1px 7px", marginLeft: 4 }}>weights</span>}
+                </div>
+                <div className="small muted ellipsis">
+                  {ok ? e.muscleGroups.join(", ") || e.equipment : `Needs ${(e.equipmentIds ?? []).map(equipmentName).join(", ")}`}
+                </div>
+              </div>
+              {state.guides[e.id] && <span className="chip accent">AI</span>}
+              <ChevronRight size={18} className="faint" />
+            </button>
+          );
+        })}
       </div>
     </Overlay>
   );
@@ -40,6 +60,7 @@ export function ExerciseDetail({ id }: { id: string }) {
   const ex = findExercise(id, state);
   if (!ex) return <Overlay title="Exercise">Not found.</Overlay>;
   const best = bestSet(state.logs, ex.id);
+  const heaviest = ex.weighted ? bestWeight(state.logs, ex.id) : null;
   const total = lifetimeTotal(state.logs, ex.id);
   const series = dailyTotals(state.logs, 14, ex.id);
   const unit = ex.type === "time" ? "s" : "";
@@ -64,11 +85,23 @@ export function ExerciseDetail({ id }: { id: string }) {
       </div>
       <div className="grid-3">
         <div className="stat">
-          <span className="value num">
-            {best}
-            {unit}
-          </span>
-          <span className="label">Best set</span>
+          {heaviest ? (
+            <>
+              <span className="value num">
+                {heaviest.weight}
+                {heaviest.unit ?? state.settings.units}
+              </span>
+              <span className="label">Heaviest</span>
+            </>
+          ) : (
+            <>
+              <span className="value num">
+                {best}
+                {unit}
+              </span>
+              <span className="label">Best set</span>
+            </>
+          )}
         </div>
         <div className="stat">
           <span className="value num">{total.toLocaleString()}</span>

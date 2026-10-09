@@ -152,6 +152,81 @@ const FULL_BODY: Program = {
   ),
 };
 
-export const BUILTIN_PROGRAMS: Program[] = [PUSH_UP_CHALLENGE, SQUAT_CHALLENGE, PLANK_BUILDER, FULL_BODY];
+
+const DUMBBELL_STARTER: Program = {
+  id: "builtin-dumbbell",
+  name: "Dumbbell Starter",
+  description: "Four weeks of full-body dumbbell training, three days a week. Reps climb each week; add weight once you hit the top of the range.",
+  goal: "Build all-round strength at home or in the gym",
+  level: "beginner",
+  durationWeeks: 4,
+  daysPerWeek: 3,
+  source: "builtin",
+  color: "#14b8a6",
+  createdAt: 0,
+  notes: [
+    "Pick a weight you could lift 2–3 more times at the end of each set.",
+    "When every set hits the target, go up 1–2 kg next session.",
+    "Rest at least a day between sessions.",
+  ],
+  days: weeks(
+    "builtin-dumbbell",
+    [0, 1, 2, 3].map((w) =>
+      [0, 1, 2].map((d) => {
+        const r = 8 + w;
+        return d === 1
+          ? {
+              title: `Week ${w + 1} · Day ${d + 1}`,
+              focus: "Hinge, pull & arms",
+              items: [item("db-rdl", [r, r, r], 90), item("db-row", [r, r, r], 75), item("db-lunge", [r, r], 75), item("db-curl", [10 + w, 10 + w], 60), item("plank", [30 + w * 10, 30 + w * 10], 45)],
+            }
+          : {
+              title: `Week ${w + 1} · Day ${d + 1}`,
+              focus: "Squat, push & shoulders",
+              items: [item("goblet-squat", [r, r, r], 90), item("db-bench-press", [r, r, r], 90), item("db-shoulder-press", [r, r], 75), item("lateral-raise", [12, 12], 60), item("triceps-extension", [10 + w, 10 + w], 60)],
+            };
+      }),
+    ),
+  ),
+};
+
+const GYM_STRENGTH: Program = {
+  id: "builtin-gym-strength",
+  name: "Gym Strength 5×5",
+  description: "Classic barbell strength: alternate workouts A and B three times a week, five sets of five on the big lifts.",
+  goal: "Get stronger on the squat, bench and deadlift",
+  level: "intermediate",
+  durationWeeks: 6,
+  daysPerWeek: 3,
+  source: "builtin",
+  color: "#e83f8b",
+  createdAt: 0,
+  notes: [
+    "Start light: about 50–60% of what you think you can lift for 5.",
+    "Add 2.5 kg to the squat and bench each session you complete all reps; 5 kg to the deadlift.",
+    "If you miss reps three sessions in a row, drop the weight by 10% and build back up.",
+  ],
+  days: weeks(
+    "builtin-gym-strength",
+    [0, 1, 2, 3, 4, 5].map((w) =>
+      [0, 1, 2].map((d) => {
+        const a = (w * 3 + d) % 2 === 0;
+        return a
+          ? {
+              title: `Week ${w + 1} · Day ${d + 1} (A)`,
+              focus: "Squat, bench, row",
+              items: [item("back-squat", [5, 5, 5, 5, 5], 150), item("bench-press", [5, 5, 5, 5, 5], 150), item("db-row", [8, 8, 8], 90)],
+            }
+          : {
+              title: `Week ${w + 1} · Day ${d + 1} (B)`,
+              focus: "Squat, press, deadlift",
+              items: [item("back-squat", [5, 5, 5, 5, 5], 150), item("db-shoulder-press", [5, 5, 5, 5, 5], 120), item("deadlift", [5], 180), item("lat-pulldown", [10, 10], 90)],
+            };
+      }),
+    ),
+  ),
+};
+
+export const BUILTIN_PROGRAMS: Program[] = [PUSH_UP_CHALLENGE, SQUAT_CHALLENGE, PLANK_BUILDER, FULL_BODY, DUMBBELL_STARTER, GYM_STRENGTH];
 
 export const PROGRAM_COLORS = ["#ff5a36", "#2fb67c", "#7c5cff", "#1e9bff", "#ff9f1c", "#e83f8b", "#14b8a6"];

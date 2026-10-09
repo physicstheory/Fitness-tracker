@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ChevronRight, Download, Dumbbell, Upload } from "lucide-react";
 import { Overlay, Sheet, Switch } from "../components/ui";
 import { MusicSettings } from "../components/Music";
+import { EquipmentPicker } from "../components/EquipmentPicker";
 import { findExercise, getState, replaceState, resetState, setState, useAppState } from "../store";
 import { useNav } from "../nav";
 import type { AppState, Level, Profile, Settings as SettingsT } from "../types";
@@ -70,10 +71,12 @@ export function Settings({ notice }: { notice?: string }) {
           Injuries or limitations
           <textarea className="input" value={state.profile.limitations} onChange={(e) => setProfile({ limitations: e.target.value })} placeholder="e.g. sore left shoulder, bad knees" />
         </label>
-        <label className="field">
-          Equipment available
-          <input className="input" value={state.profile.equipment} onChange={(e) => setProfile({ equipment: e.target.value })} />
-        </label>
+        <div className="col" style={{ gap: 6 }}>
+          <span className="small muted" style={{ fontWeight: 650 }}>
+            Equipment available
+          </span>
+          <EquipmentPicker />
+        </div>
       </div>
 
       <div className="card col" style={{ gap: 10 }}>
@@ -152,6 +155,19 @@ export function Settings({ notice }: { notice?: string }) {
           Daily rep target
           <input className="input num" type="number" inputMode="numeric" min={1} value={state.settings.dailyRepTarget} onChange={(e) => setSettings({ dailyRepTarget: Math.max(1, Number(e.target.value)) })} />
         </label>
+        <div className="col" style={{ gap: 6, paddingBottom: 12 }}>
+          <span className="small muted" style={{ fontWeight: 650 }}>
+            Weight units
+          </span>
+          <div className="seg">
+            <button className={state.settings.units === "kg" ? "on" : ""} onClick={() => setSettings({ units: "kg" })}>
+              Kilograms (kg)
+            </button>
+            <button className={state.settings.units === "lb" ? "on" : ""} onClick={() => setSettings({ units: "lb" })}>
+              Pounds (lb)
+            </button>
+          </div>
+        </div>
         <Switch label="Sounds" hint="Beeps for reps, countdowns and timers" on={state.settings.sound} onChange={(v) => setSettings({ sound: v })} />
         <Switch label="Countdown beeps" hint="Beep for the last 3 seconds of rest" on={state.settings.countdownBeeps} onChange={(v) => setSettings({ countdownBeeps: v })} />
         <Switch label="Vibration" hint="On supported phones" on={state.settings.vibrate} onChange={(v) => setSettings({ vibrate: v })} />

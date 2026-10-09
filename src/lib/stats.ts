@@ -92,3 +92,23 @@ export const fmtDuration = (sec: number) => {
   const m = Math.round(sec / 60);
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${m % 60}m`;
 };
+
+/** Heaviest weight lifted for at least one rep. */
+export function bestWeight(logs: WorkoutLog[], exerciseId: string): { weight: number; unit?: "kg" | "lb" } | null {
+  let best: { weight: number; unit?: "kg" | "lb" } | null = null;
+  for (const log of logs)
+    for (const e of log.entries)
+      if (e.exerciseId === exerciseId) for (const s of e.sets) if (s.weight && s.actual > 0 && (!best || s.weight > best.weight)) best = { weight: s.weight, unit: s.unit };
+  return best;
+}
+
+/** Weight used on the most recent set of this exercise. */
+export function lastWeight(logs: WorkoutLog[], exerciseId: string): number | undefined {
+  for (const log of logs)
+    for (const e of log.entries)
+      if (e.exerciseId === exerciseId) {
+        const w = [...e.sets].reverse().find((s) => s.weight)?.weight;
+        if (w) return w;
+      }
+  return undefined;
+}

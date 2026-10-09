@@ -4,8 +4,10 @@ import { Confetti, ProgressRing, Sheet, setLabel } from "../components/ui";
 import { ExerciseGuide } from "../components/ExerciseGuide";
 import { WorkoutMusic, useSpotifyConnected } from "../components/Music";
 import { feedback, unlockAudio } from "../lib/feedback";
-import { fmtDuration, fmtTime, goalProgress } from "../lib/stats";
-import { findExercise, findProgram, getState, setState, uid, useAppState } from "../store";
+import { fmtDuration, fmtTime, goalProgress, lastWeight } from "../lib/stats";
+import { ExerciseVisual } from "../components/ExerciseVisual";
+import { equipmentName } from "../data/equipment";
+import { canDo, findExercise, findProgram, getState, setState, uid, useAppState } from "../store";
 import { useNav } from "../nav";
 import { useNow, useWakeLock } from "../hooks";
 import type { Exercise, ProgramItem, SavedWorkout, Settings, WorkoutLog } from "../types";
@@ -46,6 +48,9 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
 
   const [results, setResults] = useState<(number | undefined)[][]>(() =>
     saved ? saved.results.map((row) => row.map((v) => (v === null ? undefined : v))) : items.map((it) => it.sets.map(() => undefined)),
+  );
+  const [weights, setWeights] = useState<(number | undefined)[][]>(() =>
+    saved?.weights ? saved.weights.map((row) => row.map((v) => (v === null ? undefined : v))) : items.map((it) => it.sets.map(() => undefined)),
   );
   const [phase, setPhase] = useState<Phase>(saved?.phase ?? "intro");
   const [pos, setPos] = useState<Pos>(saved?.pos ?? { i: 0, s: 0 });
@@ -90,6 +95,22 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
   const now = useNow(timing || phase === "active" || pausedAt !== null, 100);
   useWakeLock((phase === "active" || phase === "rest") && pausedAt === null);
 
+  // Weight for the current set: program target, else the previous set, else what you used last time.
+  const isWeighted = Boolean(exercise?.weighted) && !isTime;
+  const defaultWeight = (p: Pos): number => {
+    const it = items[p.i];
+    if (!it) return 0;
+    return it.weights?.[p.s] ?? weights[p.i]?.[p.s - 1] ?? weights[p.i]?.find((w) => w !== undefined) ?? lastWeight(getState().logs, it.exerciseId) ?? 0;
+  };
+  const [curWeight, setCurWeight] = useState(() => defaultWeight(saved?.pos ?? { i: 0, s: 0 }));
+  useEffect(() => {
+    setCurWeight(defaultWeight(pos));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pos.i, pos.s]);
+  const units = state.settings.units;
+  const heavyKit = (exercise?.equipmentIds ?? []).some((id) => id === "barbell" || id === "leg_press" || id === "cable");
+  const weightStep = units === "kg" ? (heavyKit ? 2.5 : 1) : heavyKit ? 5 : 2.5;
+
   const elapsedTimed = timerStart ? (paused ?? now - timerStart) / 1000 : 0;
   const autoCount = Math.max(0, Math.floor(elapsedTimed / pace) + repOffset);
   const shownCount = isAuto ? autoCount : count;
@@ -129,6 +150,7 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
     (actual: number) => {
       if (!isTime && !isAuto && item) learnPace(item.exerciseId);
       setResults((r) => r.map((row, i) => (i === pos.i ? row.map((v, s) => (s === pos.s ? actual : v)) : row)));
+      if (isWeighted) setWeights((r) => r.map((row, i) => (i === pos.i ? row.map((v, s) => (s === pos.s ? curWeight : v)) : row)));
       feedback.done();
       const n = next(pos);
       resetSet();
@@ -145,7 +167,7 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
         setPhase("rest");
       }
     },
-    [items, next, pos, isTime, isAuto, item, learnPace],
+    [items, next, pos, isTime, isAuto, item, learnPace, isWeighted, curWeight],
   );
 
   // Rest countdown, get-ready countdown, timed holds and auto rep counting.
@@ -228,6 +250,7 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
       title,
       items,
       results: results.map((row) => row.map((v) => (v === undefined ? null : v))),
+      weights: weights.map((row) => row.map((v) => (v === undefined ? null : v))),
       pos,
       phase: phase === "intro" ? "active" : phase,
       count: usesTimer ? 0 : count,
@@ -254,7 +277,7 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
   // Autosave after each set and when the app goes to the background, so nothing is lost if iOS closes it.
   useEffect(() => {
     if (phase !== "intro") persist();
-  }, [phase, pos, results, items, persist]);
+  }, [phase, pos, results, weights, items, persist]);
   useEffect(() => {
     const onHide = () => document.visibilityState === "hidden" && startedAt > 0 && persist();
     document.addEventListener("visibilitychange", onHide);
@@ -348,6 +371,7 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
     setTimedPausedByUs(false);
     setRestHold(null);
     setResults(items.map((it) => it.sets.map(() => undefined)));
+    setWeights(items.map((it) => it.sets.map(() => undefined)));
     setPos({ i: 0, s: 0 });
     setStartedAt(Date.now());
     setPausedTotal(0);
@@ -367,6 +391,7 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
   function addSet() {
     setItems((its) => its.map((it, i) => (i === pos.i ? { ...it, sets: [...it.sets, it.sets[it.sets.length - 1] ?? 0] } : it)));
     setResults((r) => r.map((row, i) => (i === pos.i ? [...row, undefined] : row)));
+    setWeights((r) => r.map((row, i) => (i === pos.i ? [...row, undefined] : row)));
   }
 
   const totalDone = results.flat().reduce<number>((a, v) => a + (v ?? 0), 0);
@@ -385,7 +410,9 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
       entries: items
         .map((it, i) => ({
           exerciseId: it.exerciseId,
-          sets: it.sets.flatMap((t, s) => (results[i][s] === undefined ? [] : [{ target: t, actual: results[i][s]! }])),
+          sets: it.sets.flatMap((t, s) =>
+            results[i][s] === undefined ? [] : [{ target: t, actual: results[i][s]!, ...(weights[i]?.[s] ? { weight: weights[i][s], unit: units } : {}) }],
+          ),
         }))
         .filter((e) => e.sets.length),
     };
@@ -499,7 +526,7 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
                     return (
                       <div key={s} className={`set-chip ${cls}`}>
                         <span className="num">{r ?? setLabel(t, exercise.type)}</span>
-                        {r !== undefined && <small>/{setLabel(t, exercise.type)}</small>}
+                        {r !== undefined && <small>{weights[pos.i]?.[s] ? `${weights[pos.i][s]}${units}` : `/${setLabel(t, exercise.type)}`}</small>}
                       </div>
                     );
                   })}
@@ -516,6 +543,7 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
                   held={restHold !== null}
                   upNext={exercise}
                   upNextTarget={target}
+                  newExercise={pos.s === 0}
                   onAdd={(n) => {
                     if (restHold !== null) setRestHold((h) => Math.max(0, (h ?? 0) + n * 1000));
                     else setRestEndsAt((e) => e + n * 1000);
@@ -544,6 +572,30 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
                 />
               ) : (
                 <>
+                  {isWeighted && (
+                    <div className="weight-row">
+                      <button className="icon-btn" onClick={() => setCurWeight((w) => Math.max(0, Math.round((w - weightStep) * 10) / 10))} aria-label="Less weight">
+                        <Minus size={18} />
+                      </button>
+                      <input
+                        className="input num"
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step={weightStep}
+                        value={curWeight || ""}
+                        placeholder="0"
+                        onChange={(e) => setCurWeight(Math.max(0, Number(e.target.value) || 0))}
+                        aria-label={`Weight in ${units}`}
+                      />
+                      <span className="muted" style={{ fontWeight: 700, minWidth: 22 }}>
+                        {units}
+                      </span>
+                      <button className="icon-btn" onClick={() => setCurWeight((w) => Math.round((w + weightStep) * 10) / 10)} aria-label="More weight">
+                        <Plus size={18} />
+                      </button>
+                    </div>
+                  )}
                   <div className="seg" style={{ alignSelf: "center", width: 220 }} role="tablist" aria-label="Rep counting">
                     <button className={repMode === "manual" ? "on" : ""} onClick={() => switchMode("manual")} role="tab" aria-selected={repMode === "manual"}>
                       <Hand size={13} style={{ verticalAlign: -2 }} /> Tap
@@ -663,7 +715,11 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
                       <div className="grow">
                         <div style={{ fontWeight: 700 }}>{ex?.name}</div>
                         <div className="small muted num">
-                          {it.sets.map((_, s) => (results[i][s] === undefined ? "–" : `${results[i][s]}${ex?.type === "time" ? "s" : ""}`)).join(" · ")}
+                          {it.sets
+                            .map((_, s) =>
+                              results[i][s] === undefined ? "–" : `${results[i][s]}${ex?.type === "time" ? "s" : ""}${weights[i]?.[s] ? ` × ${weights[i][s]}${units}` : ""}`,
+                            )
+                            .join(" · ")}
                         </div>
                       </div>
                     </div>
@@ -775,12 +831,31 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
 function Intro({ title, focus, items, onStart }: { title: string; focus?: string; items: ProgramItem[]; onStart: () => void }) {
   const total = items.reduce((a, it) => a + it.sets.reduce((x, y) => x + y, 0), 0);
   const exercises = useMemo(() => items.map((it) => findExercise(it.exerciseId)), [items]);
+  const unique = useMemo(() => exercises.filter((e, i, arr): e is Exercise => !!e && arr.findIndex((x) => x?.id === e.id) === i), [exercises]);
+  const [preview, setPreview] = useState(0);
+  const shown = unique[preview] ?? unique[0];
+  const missing = [...new Set(unique.filter((e) => !canDo(e)).flatMap((e) => e.equipmentIds ?? []))].filter((id) => !(getState().profile.equipmentList ?? []).includes(id));
   return (
     <div className="col" style={{ gap: 18, flex: 1 }}>
       <div className="col" style={{ gap: 6, paddingTop: 10 }}>
         <h1 style={{ fontSize: 30, fontWeight: 900 }}>{title}</h1>
         {focus && <p className="muted">{focus}</p>}
       </div>
+      {shown && (
+        <div className="card col" style={{ gap: 12 }}>
+          {unique.length > 1 && (
+            <div className="set-chips" role="tablist" aria-label="Preview exercise">
+              {unique.map((e, i) => (
+                <button key={e.id} className={`chip ${i === preview ? "accent" : ""}`} style={{ padding: "8px 12px", fontSize: 13 }} onClick={() => setPreview(i)} role="tab" aria-selected={i === preview}>
+                  {e.emoji} {e.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <ExerciseVisual key={shown.id} exercise={shown} />
+        </div>
+      )}
+      {missing.length > 0 && <div className="banner">This workout uses equipment you haven't ticked: {missing.map(equipmentName).join(", ")}.</div>}
       <div className="grid-3">
         <div className="stat">
           <span className="value num">{items.length}</span>
@@ -830,6 +905,7 @@ function Rest({
   held,
   upNext,
   upNextTarget,
+  newExercise,
   onAdd,
   onToggleHold,
   onSkip,
@@ -839,6 +915,7 @@ function Rest({
   held: boolean;
   upNext: Exercise;
   upNextTarget: number;
+  newExercise: boolean;
   onAdd: (n: number) => void;
   onToggleHold: () => void;
   onSkip: () => void;
@@ -878,6 +955,11 @@ function Rest({
           </div>
         </div>
       </div>
+      {newExercise && (
+        <div className="card flat" style={{ width: "100%" }}>
+          <ExerciseVisual exercise={upNext} compact />
+        </div>
+      )}
     </div>
   );
 }

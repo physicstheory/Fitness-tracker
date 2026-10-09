@@ -30,7 +30,8 @@ export const PROGRAM_JSON_SPEC = `Reply with ONLY one \`\`\`json code block, no 
       "title": "Week 1 · Day 1",
       "focus": "Upper body",
       "items": [
-        { "exercise": "Push-Up", "sets": [10, 10, 8], "restSec": 60, "notes": "" }
+        { "exercise": "Push-Up", "sets": [10, 10, 8], "restSec": 60, "notes": "" },
+        { "exercise": "Dumbbell Row", "sets": [10, 10, 10], "weights": [12, 12, 12], "restSec": 75, "notes": "" }
       ]
     }
   ],
@@ -42,6 +43,7 @@ Rules:
 - "sets" holds the target for each set: reps for rep exercises, seconds for timed ones. Use 0 for max effort / AMRAP / to failure.
 - For ranges like 8-12, use the low end early and progress sensibly.
 - Every "exercise" in days must exactly match a name in "exercises".
+- For weighted exercises, put the equipment in "equipment" (e.g. "Dumbbells", "Barbell, bench") and, if the program gives loads, add "weights" (one number per set, in kg unless the program uses lb). Leave "weights" out for bodyweight exercises.
 - Write clear, practical instructions and cues for each exercise.`;
 
 /**
@@ -106,6 +108,7 @@ export function parseProgram(text: string): AIProgram {
           sets: (Array.isArray(it?.sets) ? it.sets : []).map((s: unknown) => Math.max(0, Math.round(num(s, 0)))),
           restSec: Math.max(0, Math.round(num(it?.restSec, 60))),
           notes: str(it?.notes),
+          weights: Array.isArray(it?.weights) ? it.weights.map((w: unknown) => Math.max(0, num(w, 0))) : undefined,
         }))
         .filter((it: { exercise: string; sets: number[] }) => it.exercise && it.sets.length),
     }))

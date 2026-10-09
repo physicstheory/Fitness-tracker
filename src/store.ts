@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
-import { BUILTIN_EXERCISES, EXERCISE_EMOJIS } from "./data/exercises";
+import { BUILTIN_EXERCISES, EXERCISE_EMOJIS, GYM_EXERCISES } from "./data/exercises";
+import { ALWAYS_AVAILABLE, WEIGHTED_EQUIPMENT, inferEquipment } from "./data/equipment";
 import { BUILTIN_PROGRAMS, PROGRAM_COLORS } from "./data/programs";
 import type { AppState, Exercise, Program, ProgramDay } from "./types";
 
@@ -7,8 +8,8 @@ const KEY = "reprise:v1";
 
 const DEFAULT_STATE: AppState = {
   version: 1,
-  profile: { name: "", level: "beginner", limitations: "", equipment: "Bodyweight only" },
-  settings: { sound: true, vibrate: true, autoStartRest: true, countdownBeeps: true, dailyRepTarget: 100, autoPlayMusic: true, theme: "system", repMode: "manual", autoPace: "average", autoPaceSec: 2 },
+  profile: { name: "", level: "beginner", limitations: "", equipment: "Bodyweight only", equipmentList: [] },
+  settings: { sound: true, vibrate: true, autoStartRest: true, countdownBeeps: true, dailyRepTarget: 100, autoPlayMusic: true, theme: "system", repMode: "manual", autoPace: "average", autoPaceSec: 2, units: "kg" },
   customExercises: [],
   programs: [],
   active: null,
@@ -72,7 +73,21 @@ export function useAppState(): AppState {
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
 export function allExercises(s: AppState = state): Exercise[] {
-  return [...BUILTIN_EXERCISES, ...s.customExercises];
+  return [...BUILTIN_EXERCISES, ...GYM_EXERCISES, ...s.customExercises];
+}
+
+/** Can the user do this exercise with the equipment they've ticked? */
+export function canDo(ex: Exercise, s: AppState = state): boolean {
+  const owned = s.profile.equipmentList ?? [];
+  return (ex.equipmentIds ?? []).every((id) => ALWAYS_AVAILABLE.has(id) || owned.includes(id));
+}
+
+/** Equipment ids a program needs that the user doesn't have. */
+export function missingEquipment(p: Program, s: AppState = state): string[] {
+  const owned = new Set(s.profile.equipmentList ?? []);
+  const need = new Set<string>();
+  for (const d of p.days) for (const it of d.items) for (const id of findExercise(it.exerciseId, s)?.equipmentIds ?? []) need.add(id);
+  return [...need].filter((id) => !owned.has(id) && !ALWAYS_AVAILABLE.has(id));
 }
 
 export function allPrograms(s: AppState = state): Program[] {
@@ -105,7 +120,7 @@ export interface AIProgram {
   durationWeeks: number;
   daysPerWeek: number;
   exercises: Omit<Exercise, "id" | "emoji">[];
-  days: { week: number; day: number; title: string; focus: string; items: { exercise: string; sets: number[]; restSec: number; notes: string }[] }[];
+  days: { week: number; day: number; title: string; focus: string; items: { exercise: string; sets: number[]; restSec: number; notes: string; weights?: number[] }[] }[];
   notes: string[];
 }
 
@@ -126,6 +141,7 @@ export function saveAIProgram(ai: AIProgram, source: Program["source"]): string 
         return existing.id;
       }
       const info = ai.exercises.find((e) => norm(e.name) === key);
+      const equipmentIds = inferEquipment(`${info?.equipment ?? ""} ${info?.name ?? name}`);
       const ex: Exercise = {
         id: `ex-${slug(name) || "exercise"}-${uid().slice(0, 4)}`,
         name: info?.name ?? name,
@@ -137,6 +153,8 @@ export function saveAIProgram(ai: AIProgram, source: Program["source"]): string 
         commonMistakes: info?.commonMistakes ?? [],
         defaultRestSec: info?.defaultRestSec ?? 60,
         emoji: EXERCISE_EMOJIS[(created.length + s.customExercises.length) % EXERCISE_EMOJIS.length],
+        equipmentIds,
+        weighted: equipmentIds.some((id) => WEIGHTED_EQUIPMENT.has(id)),
       };
       created.push(ex);
       idFor.set(key, ex.id);
@@ -159,6 +177,7 @@ export function saveAIProgram(ai: AIProgram, source: Program["source"]): string 
             sets: it.sets.map((n) => Math.max(0, Math.round(n))),
             restSec: Math.max(0, Math.round(it.restSec)),
             notes: it.notes,
+            ...(it.weights?.some((w) => w > 0) ? { weights: it.weights.map((w) => Math.max(0, w)) } : {}),
           })),
       }))
       .filter((d) => d.items.length);
