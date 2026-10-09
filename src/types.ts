@@ -123,6 +123,29 @@ export interface Settings {
   spotifyClientId?: string;
   workoutMusic?: { uri: string; name: string; image?: string };
   autoPlayMusic: boolean;
+  theme: "system" | "light" | "dark";
+  /** How reps are counted: tapping, or automatically at a set pace. */
+  repMode: "manual" | "auto";
+  /** Auto pace source: the user's average tap speed per exercise, or a fixed pace. */
+  autoPace: "average" | "fixed";
+  autoPaceSec: number;
+}
+
+/** A workout that was paused and saved to finish later. */
+export interface SavedWorkout {
+  programId?: string;
+  dayId?: string;
+  exerciseId?: string;
+  title: string;
+  items: ProgramItem[];
+  results: (number | null)[][];
+  pos: { i: number; s: number };
+  phase: "active" | "rest" | "summary";
+  count: number;
+  elapsedMs: number;
+  restLeftMs: number;
+  restTotal: number;
+  savedAt: number;
 }
 
 export interface ActiveProgram {
@@ -147,4 +170,7 @@ export interface AppState {
   goals: Goal[];
   guides: Record<string, ExerciseGuide>;
   chat: ChatMessage[];
+  /** Average seconds per rep for each exercise, learned from manual counting. */
+  repPace: Record<string, number>;
+  inProgress?: SavedWorkout;
 }

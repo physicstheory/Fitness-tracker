@@ -1,12 +1,7 @@
 import type { AIProgram } from "../store";
 
-/**
- * Instructions the user sends to Claude (in the Claude app) along with their program file.
- * Claude replies with JSON that the app imports, so no API key is needed.
- */
-export const CONVERT_PROMPT = `Convert the workout program in the attached file into JSON for my rep-tracking app (RepRise).
-
-Reply with ONLY one \`\`\`json code block, no other text, in exactly this shape:
+/** The JSON shape RepRise imports, with rules. Shared by every "ask Claude for a program" prompt. */
+export const PROGRAM_JSON_SPEC = `Reply with ONLY one \`\`\`json code block, no other text, in exactly this shape:
 
 {
   "app": "reprise",
@@ -48,6 +43,14 @@ Rules:
 - For ranges like 8-12, use the low end early and progress sensibly.
 - Every "exercise" in days must exactly match a name in "exercises".
 - Write clear, practical instructions and cues for each exercise.`;
+
+/**
+ * Instructions the user sends to Claude (in the Claude app) along with their program file.
+ * Claude replies with JSON that the app imports, so no API key is needed.
+ */
+export const CONVERT_PROMPT = `Convert the workout program in the attached file into JSON for my rep-tracking app (RepRise).
+
+${PROGRAM_JSON_SPEC}`;
 
 const LEVELS = ["beginner", "intermediate", "advanced"] as const;
 

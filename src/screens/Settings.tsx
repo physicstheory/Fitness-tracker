@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { ChevronRight, Download, Dumbbell, Upload } from "lucide-react";
 import { Overlay, Sheet, Switch } from "../components/ui";
 import { MusicSettings } from "../components/Music";
-import { getState, replaceState, resetState, setState, useAppState } from "../store";
+import { findExercise, getState, replaceState, resetState, setState, useAppState } from "../store";
 import { useNav } from "../nav";
 import type { AppState, Level, Profile, Settings as SettingsT } from "../types";
 
@@ -74,6 +74,74 @@ export function Settings({ notice }: { notice?: string }) {
           Equipment available
           <input className="input" value={state.profile.equipment} onChange={(e) => setProfile({ equipment: e.target.value })} />
         </label>
+      </div>
+
+      <div className="card col" style={{ gap: 10 }}>
+        <span className="eyebrow">Appearance</span>
+        <div className="seg">
+          {(
+            [
+              ["system", "Auto"],
+              ["light", "Light"],
+              ["dark", "Dark"],
+            ] as const
+          ).map(([v, label]) => (
+            <button key={v} className={state.settings.theme === v ? "on" : ""} onClick={() => setSettings({ theme: v })}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className="small faint">Auto follows your iPhone's light/dark setting.</span>
+      </div>
+
+      <div className="card col" style={{ gap: 10 }}>
+        <span className="eyebrow">Rep counting</span>
+        <div className="seg">
+          <button className={state.settings.repMode === "manual" ? "on" : ""} onClick={() => setSettings({ repMode: "manual" })}>
+            Tap to count
+          </button>
+          <button className={state.settings.repMode === "auto" ? "on" : ""} onClick={() => setSettings({ repMode: "auto" })}>
+            Count automatically
+          </button>
+        </div>
+        <span className="small muted">
+          {state.settings.repMode === "manual"
+            ? "Tap the circle for each rep. RepRise learns your pace as you go."
+            : "After a 3-2-1, RepRise counts a rep (with a beep) at your pace and finishes the set when you hit the target. Tap the circle to pause."}
+        </span>
+        <span className="small muted" style={{ fontWeight: 650, marginTop: 4 }}>
+          Auto pace
+        </span>
+        <div className="seg">
+          <button className={state.settings.autoPace === "average" ? "on" : ""} onClick={() => setSettings({ autoPace: "average" })}>
+            My average
+          </button>
+          <button className={state.settings.autoPace === "fixed" ? "on" : ""} onClick={() => setSettings({ autoPace: "fixed" })}>
+            Set pace
+          </button>
+        </div>
+        {state.settings.autoPace === "average" ? (
+          <span className="small faint">
+            {Object.keys(state.repPace).length
+              ? `Learned: ${Object.entries(state.repPace)
+                  .map(([id, sec]) => `${findExercise(id)?.name ?? id} ${sec}s`)
+                  .join(" · ")}`
+              : "Uses 2.5s per rep until you've tapped a few sets of an exercise."}
+          </span>
+        ) : (
+          <label className="field">
+            Seconds per rep
+            <input
+              className="input num"
+              type="number"
+              inputMode="decimal"
+              step={0.5}
+              min={0.5}
+              value={state.settings.autoPaceSec}
+              onChange={(e) => setSettings({ autoPaceSec: Math.max(0.5, Number(e.target.value) || 2) })}
+            />
+          </label>
+        )}
       </div>
 
       <div className="card col" style={{ gap: 0 }}>

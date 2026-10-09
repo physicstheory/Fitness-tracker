@@ -24,9 +24,9 @@ function RouteView({ route }: { route: Route }) {
     case "program":
       return <ProgramDetail id={route.id} />;
     case "workout":
-      return <Workout programId={route.programId} dayId={route.dayId} exerciseId={route.exerciseId} />;
+      return <Workout programId={route.programId} dayId={route.dayId} exerciseId={route.exerciseId} resume={route.resume} />;
     case "import":
-      return <Import />;
+      return <Import pasteOnly={route.pasteOnly} />;
     case "exercise":
       return <ExerciseDetail id={route.id} />;
     case "library":
@@ -62,7 +62,7 @@ function Shell({ spotifyReturn }: { spotifyReturn?: { notice?: string } }) {
         ))}
       </nav>
       {stack.map((r, i) => (
-        <RouteView key={i + r.name} route={r} />
+        <RouteView key={`${i}-${JSON.stringify(r)}`} route={r} />
       ))}
     </div>
   );

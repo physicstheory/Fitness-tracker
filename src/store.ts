@@ -8,7 +8,7 @@ const KEY = "reprise:v1";
 const DEFAULT_STATE: AppState = {
   version: 1,
   profile: { name: "", level: "beginner", limitations: "", equipment: "Bodyweight only" },
-  settings: { sound: true, vibrate: true, autoStartRest: true, countdownBeeps: true, dailyRepTarget: 100, autoPlayMusic: true },
+  settings: { sound: true, vibrate: true, autoStartRest: true, countdownBeeps: true, dailyRepTarget: 100, autoPlayMusic: true, theme: "system", repMode: "manual", autoPace: "average", autoPaceSec: 2 },
   customExercises: [],
   programs: [],
   active: null,
@@ -16,6 +16,7 @@ const DEFAULT_STATE: AppState = {
   goals: [],
   guides: {},
   chat: [],
+  repPace: {},
 };
 
 function load(): AppState {
@@ -59,7 +60,7 @@ export function resetState() {
   setState(() => DEFAULT_STATE);
 }
 
-function subscribe(listener: () => void) {
+export function subscribe(listener: () => void) {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }

@@ -2,7 +2,17 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { handleRedirect } from "./lib/spotify";
+import { applyTheme } from "./lib/theme";
+import { getState, subscribe } from "./store";
 import "./styles.css";
+
+// Light / dark theme follows the setting, and the system when set to Auto.
+let theme = getState().settings.theme;
+applyTheme(theme);
+subscribe(() => {
+  if (getState().settings.theme !== theme) applyTheme((theme = getState().settings.theme));
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyTheme(theme));
 
 const returningFromSpotify = /[?&](code|error)=/.test(location.search);
 

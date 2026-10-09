@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
+import { AlertTriangle, ExternalLink, RefreshCw, Sparkles } from "lucide-react";
+import { exerciseGuidePrompt, openInClaude } from "../lib/claude";
 import { fetchGuide } from "../lib/api";
 import { historySummary } from "../lib/stats";
 import { getState, setState, useAppState } from "../store";
@@ -148,7 +149,11 @@ export function ExerciseGuide({ exercise, compact = false }: { exercise: Exercis
         <button className="btn block" onClick={generate} style={{ borderColor: "var(--violet)" }}>
           <Sparkles size={16} color="var(--violet)" /> Get AI coaching for your level
         </button>
-      ) : null}
+      ) : (
+        <button className="btn block" onClick={() => openInClaude(exerciseGuidePrompt(exercise, getState()))} style={{ borderColor: "var(--violet)" }}>
+          <Sparkles size={16} color="var(--violet)" /> Ask Claude to coach me on this <ExternalLink size={14} />
+        </button>
+      )}
       {error && <div className="banner error">{error}</div>}
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { AlertTriangle, CalendarDays, ChevronRight, Plus, Sparkles, Target, Trash2, Trophy } from "lucide-react";
+import { CalendarDays, ChevronRight, ExternalLink, Plus, Sparkles, Target, Trash2, Trophy } from "lucide-react";
+import { goalPlanPrompt, openInClaude } from "../lib/claude";
 import { AIBadge, AILoading, Empty, ProgressRing, Sheet } from "../components/ui";
 import { fetchGoalPlan } from "../lib/api";
 import { bestSet, goalProgress, historySummary } from "../lib/stats";
@@ -197,6 +198,7 @@ function GoalCard({ goal }: { goal: Goal }) {
 function NewGoalSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const state = useAppState();
   const aiAvailable = useAIAvailable();
+  const nav = useNav();
   const exercises = allExercises(state);
   const [exerciseId, setExerciseId] = useState("push-up");
   const [metric, setMetric] = useState<GoalMetric>("max_set");
@@ -214,6 +216,15 @@ function NewGoalSheet({ open, onClose }: { open: boolean; onClose: () => void })
     setError("");
     setLoading(false);
     onClose();
+  }
+
+  /** No API key: create the goal, have Claude write the program in the Claude app, then paste it in. */
+  function planWithClaude() {
+    const goal: Goal = { id: uid(), exerciseId, metric, target, baseline: base, deadline: deadline || undefined, createdAt: Date.now() };
+    setState((s) => ({ ...s, goals: [goal, ...s.goals] }));
+    void openInClaude(goalPlanPrompt(goal, ex, getState()));
+    reset();
+    nav.push({ name: "import", pasteOnly: true });
   }
 
   async function create(withAI: boolean) {
@@ -293,16 +304,21 @@ function NewGoalSheet({ open, onClose }: { open: boolean; onClose: () => void })
             Deadline
             <input className="input" type="date" value={deadline} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDeadline(e.target.value)} />
           </label>
-          {!aiAvailable && (
-            <div className="banner">
-              <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-              <span>AI plans need ANTHROPIC_API_KEY on the server. You can still track the goal without one.</span>
-            </div>
-          )}
           {error && <div className="banner error">{error}</div>}
-          <button className="btn primary lg block" disabled={!aiAvailable} onClick={() => create(true)}>
-            <Sparkles size={18} /> Create with AI plan
-          </button>
+          {aiAvailable ? (
+            <button className="btn primary lg block" onClick={() => create(true)}>
+              <Sparkles size={18} /> Create with AI plan
+            </button>
+          ) : (
+            <>
+              <button className="btn primary lg block" onClick={planWithClaude}>
+                <Sparkles size={18} /> Get a plan from Claude <ExternalLink size={15} />
+              </button>
+              <p className="small faint" style={{ textAlign: "center" }}>
+                Opens the Claude app to write your plan. Copy its reply and paste it on the next screen.
+              </p>
+            </>
+          )}
           <button className="btn block" onClick={() => create(false)}>
             Just track it
           </button>

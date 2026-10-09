@@ -1,7 +1,7 @@
-import { ChevronRight, Flame, Play, Settings as Cog, Sparkles, Target, Plus, Zap } from "lucide-react";
+import { ChevronRight, Flame, PauseCircle, Play, Settings as Cog, Sparkles, Target, Plus, Zap } from "lucide-react";
 import { ProgressRing } from "../components/ui";
-import { addDays, dailyTotals, dayKey, goalProgress, streak } from "../lib/stats";
-import { findExercise, findProgram, useAppState } from "../store";
+import { addDays, dailyTotals, dayKey, fmtTime, goalProgress, streak } from "../lib/stats";
+import { setState, findExercise, findProgram, useAppState } from "../store";
 import { useNav } from "../nav";
 
 const QUICK = ["push-up", "squat", "sit-up", "plank", "burpee", "pull-up"];
@@ -89,6 +89,35 @@ export function Today() {
           );
         })}
       </div>
+
+      {state.inProgress && (
+        <div className="card col" style={{ gap: 12, borderColor: "var(--accent)" }}>
+          <div className="row">
+            <span className="emoji-badge" style={{ background: "var(--accent-soft)" }}>
+              <PauseCircle color="var(--accent)" />
+            </span>
+            <div className="grow" style={{ minWidth: 0 }}>
+              <span className="eyebrow" style={{ color: "var(--accent)" }}>
+                Unfinished workout
+              </span>
+              <div className="ellipsis" style={{ fontWeight: 750 }}>
+                {state.inProgress.title}
+              </div>
+              <div className="small muted">
+                {state.inProgress.results.flat().filter((v) => v !== null).length} sets done · {fmtTime(state.inProgress.elapsedMs / 1000)} · saved {timeAgo(state.inProgress.savedAt)}
+              </div>
+            </div>
+          </div>
+          <div className="row">
+            <button className="btn primary grow" onClick={() => nav.push({ name: "workout", resume: true })}>
+              <Play size={16} fill="#fff" /> Resume
+            </button>
+            <button className="btn ghost danger" onClick={() => setState((s) => ({ ...s, inProgress: undefined }))}>
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
 
       {program && nextDay ? (
         <button className="card hero tap" onClick={() => nav.push({ name: "workout", programId: program.id, dayId: nextDay.id })}>
@@ -198,4 +227,12 @@ export function Today() {
       </div>
     </div>
   );
+}
+
+function timeAgo(t: number): string {
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
 }

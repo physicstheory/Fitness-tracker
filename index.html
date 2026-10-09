@@ -15,6 +15,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <title>RepRise</title>
+    <script>
+      // Apply the saved Light/Dark choice before anything paints, so there's no flash.
+      try {
+        var t = JSON.parse(localStorage.getItem("reprise:v1") || "{}").settings?.theme;
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    </script>
     <style>
       /* Startup splash: shown instantly before the app's JavaScript loads. */
       #splash {
@@ -30,6 +37,16 @@
         color: #f4f6fa;
         font-family: "Inter", system-ui, -apple-system, sans-serif;
         transition: opacity 0.45s ease, transform 0.45s ease;
+      }
+      :root[data-theme="light"] #splash {
+        background: radial-gradient(circle at 50% 42%, #ffe6da 0%, #f3f4f8 62%);
+        color: #12151c;
+      }
+      @media (prefers-color-scheme: light) {
+        :root:not([data-theme="dark"]) #splash {
+          background: radial-gradient(circle at 50% 42%, #ffe6da 0%, #f3f4f8 62%);
+          color: #12151c;
+        }
       }
       #splash.hide {
         opacity: 0;

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import express from "express";
 import type Anthropic from "@anthropic-ai/sdk";
-import { aiConfigured, chat, describeError, structured } from "./ai.ts";
+import { aiConfigured, aiUsable, chat, describeError, structured } from "./ai.ts";
 import { GoalPlanSchema, InstructionsSchema } from "./schemas.ts";
 
 const app = express();
@@ -29,8 +29,8 @@ const requireAI: express.RequestHandler = (_req, res, next) => {
   next();
 };
 
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, ai: aiConfigured() });
+app.get("/api/health", async (_req, res) => {
+  res.json({ ok: true, ai: await aiUsable() });
 });
 
 // Personalised how-to for one exercise.

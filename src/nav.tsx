@@ -4,8 +4,8 @@ export type Tab = "today" | "programs" | "goals" | "progress" | "coach";
 
 export type Route =
   | { name: "program"; id: string }
-  | { name: "workout"; programId?: string; dayId?: string; exerciseId?: string }
-  | { name: "import" }
+  | { name: "workout"; programId?: string; dayId?: string; exerciseId?: string; resume?: boolean }
+  | { name: "import"; pasteOnly?: boolean }
   | { name: "exercise"; id: string }
   | { name: "library" }
   | { name: "settings"; notice?: string };

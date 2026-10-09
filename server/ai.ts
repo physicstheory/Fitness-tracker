@@ -14,6 +14,24 @@ export function aiConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 }
 
+let keyCheck: { ok: boolean; at: number } | null = null;
+
+/** True only if a key is set and Anthropic accepts it. Bad keys are re-checked every 10 minutes. */
+export async function aiUsable(): Promise<boolean> {
+  if (!aiConfigured()) return false;
+  if (keyCheck && (keyCheck.ok || Date.now() - keyCheck.at < 10 * 60_000)) return keyCheck.ok;
+  try {
+    await getClient().models.list({ limit: 1 });
+    keyCheck = { ok: true, at: Date.now() };
+  } catch (err) {
+    // Only a rejected key disables AI; network blips shouldn't.
+    const rejected = err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError;
+    if (!rejected) return true;
+    keyCheck = { ok: false, at: Date.now() };
+  }
+  return keyCheck.ok;
+}
+
 export class AIError extends Error {
   constructor(
     message: string,

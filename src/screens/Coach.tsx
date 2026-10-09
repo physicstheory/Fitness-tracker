@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, RotateCcw, Send, Sparkles } from "lucide-react";
+import { ClipboardCopy, ExternalLink, RotateCcw, Send, Sparkles } from "lucide-react";
 import { AIBadge } from "../components/ui";
 import { coachChat } from "../lib/api";
-import { bestSet, goalProgress, streak } from "../lib/stats";
-import { allExercises, findExercise, findProgram, getState, setState, useAppState } from "../store";
+import { coachPrompt, openInClaude, trainingSummary } from "../lib/claude";
+import { getState, setState, useAppState } from "../store";
 import { useAIAvailable } from "../hooks";
-import type { AppState, ChatMessage } from "../types";
+import type { ChatMessage } from "../types";
 
 const SUGGESTIONS = [
   "How do I break through a push-up plateau?",
@@ -15,33 +15,102 @@ const SUGGESTIONS = [
   "Give me a 10-minute workout for today",
 ];
 
-function buildContext(s: AppState): string {
-  const program = findProgram(s.active?.programId, s);
-  const trained = allExercises(s)
-    .map((e) => ({ e, best: bestSet(s.logs, e.id) }))
-    .filter((x) => x.best > 0)
-    .map((x) => `${x.e.name}: best set ${x.best}${x.e.type === "time" ? "s" : ""}`);
-  return [
-    `Profile: ${JSON.stringify(s.profile)}`,
-    `Workouts logged: ${s.logs.length}; current streak ${streak(s.logs).current} days.`,
-    program ? `Active program: ${program.name} (${s.active!.completedDayIds.length}/${program.days.length} sessions done). Goal: ${program.goal}.` : "No active program.",
-    trained.length ? `Personal bests: ${trained.join("; ")}` : "No personal bests yet.",
-    s.goals.length
-      ? `Goals: ${s.goals
-          .map((g) => `${g.target} ${findExercise(g.exerciseId, s)?.name} (${g.metric}), now ${goalProgress(g, s.logs)}${g.deadline ? `, due ${g.deadline}` : ""}${g.achievedAt ? ", ACHIEVED" : ""}`)
-          .join("; ")}`
-      : "No goals set.",
-    `Last workouts: ${s.logs
-      .slice(0, 5)
-      .map((l) => `${l.date.slice(0, 10)} ${l.title}: ${l.entries.map((e) => `${findExercise(e.exerciseId, s)?.name} ${e.sets.map((x) => x.actual).join("/")}`).join(", ")}`)
-      .join(" | ") || "none"}`,
-    `Today: ${new Date().toDateString()}`,
-  ].join("\n");
+export function Coach() {
+  const aiAvailable = useAIAvailable();
+  return aiAvailable ? <InAppCoach /> : <ClaudeAppCoach />;
 }
 
-export function Coach() {
+/** Without an API key: questions open in the Claude app with the user's training data attached. */
+function ClaudeAppCoach() {
   const state = useAppState();
-  const aiAvailable = useAIAvailable();
+  const [input, setInput] = useState("");
+  const [note, setNote] = useState("");
+
+  async function ask(question: string) {
+    const q = question.trim();
+    if (!q) return;
+    const copied = await openInClaude(coachPrompt(q, getState()));
+    setState((s) => ({ ...s, chat: [...s.chat.filter((m) => m.content !== q), { role: "user" as const, content: q }].slice(-8) }));
+    setInput("");
+    setNote(copied ? "Opened in Claude. If the message box is empty, paste — your question and training data are copied." : "Opened in Claude with your question and training data.");
+  }
+
+  async function copySummary() {
+    try {
+      await navigator.clipboard.writeText(`My training data from RepRise:\n\n${trainingSummary(getState())}`);
+      setNote("Training summary copied. Paste it into any Claude chat or Project.");
+    } catch {
+      setNote("Couldn't copy. Your browser blocked the clipboard.");
+    }
+  }
+
+  const recent = [...state.chat].filter((m) => m.role === "user").reverse();
+
+  return (
+    <div className="screen" style={{ paddingBottom: "calc(var(--nav-h) + var(--safe-b) + 90px)" }}>
+      <div className="screen-header">
+        <div className="col" style={{ gap: 4 }}>
+          <h1>Coach</h1>
+          <AIBadge label="POWERED BY YOUR CLAUDE APP" />
+        </div>
+      </div>
+
+      <div className="card col" style={{ gap: 8 }}>
+        <Sparkles color="var(--violet)" />
+        <p style={{ fontWeight: 700 }}>Ask anything{state.profile.name ? `, ${state.profile.name}` : ""}.</p>
+        <p className="small muted">
+          Your question opens in the Claude app along with your workouts, personal bests, goals and current program, so the answer is about you. It uses your Claude subscription, no API key needed.
+        </p>
+        <button className="btn sm ghost" style={{ alignSelf: "flex-start" }} onClick={copySummary}>
+          <ClipboardCopy size={14} /> Copy my training summary
+        </button>
+      </div>
+
+      {note && <div className="banner" style={{ color: "var(--good)", background: "var(--good-soft)" }}>{note}</div>}
+
+      <span className="eyebrow">Try asking</span>
+      <div className="col" style={{ gap: 8 }}>
+        {SUGGESTIONS.map((s) => (
+          <button key={s} className="card tap row small" style={{ padding: "12px 14px", fontWeight: 600 }} onClick={() => ask(s)}>
+            <span className="grow">{s}</span>
+            <ExternalLink size={14} className="faint" />
+          </button>
+        ))}
+      </div>
+
+      {recent.length > 0 && (
+        <>
+          <span className="eyebrow">Recent questions</span>
+          <div className="card flat list" style={{ padding: "4px 16px" }}>
+            {recent.map((m, i) => (
+              <button key={i} className="list-item small" onClick={() => ask(m.content)}>
+                <span className="grow">{m.content}</span>
+                <ExternalLink size={14} className="faint" />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <form
+        className="composer"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void ask(input);
+        }}
+      >
+        <input className="input" placeholder="Ask your coach…" value={input} onChange={(e) => setInput(e.target.value)} enterKeyHint="send" />
+        <button className="btn primary" style={{ width: 52, padding: 0 }} disabled={!input.trim()} aria-label="Ask in Claude">
+          <Send size={18} />
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/** With an API key on the server: chat right inside the app. */
+function InAppCoach() {
+  const state = useAppState();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -61,7 +130,7 @@ export function Coach() {
     setLoading(true);
     setError("");
     try {
-      const { reply } = await coachChat(next, buildContext(getState()));
+      const { reply } = await coachChat(next, trainingSummary(getState()));
       setState((s) => ({ ...s, chat: [...s.chat, { role: "assistant", content: reply }] }));
     } catch (e) {
       setError((e as Error).message);
@@ -84,13 +153,6 @@ export function Coach() {
         )}
       </div>
 
-      {!aiAvailable && (
-        <div className="banner">
-          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>The coach needs ANTHROPIC_API_KEY set on the server.</span>
-        </div>
-      )}
-
       {messages.length === 0 && (
         <div className="col" style={{ gap: 10 }}>
           <div className="card col" style={{ gap: 8 }}>
@@ -99,7 +161,7 @@ export function Coach() {
             <p className="small muted">Ask me about form, plateaus, recovery, or how to adjust your plan.</p>
           </div>
           {SUGGESTIONS.map((s) => (
-            <button key={s} className="card tap small" style={{ padding: "12px 14px", fontWeight: 600 }} onClick={() => send(s)} disabled={!aiAvailable}>
+            <button key={s} className="card tap small" style={{ padding: "12px 14px", fontWeight: 600 }} onClick={() => send(s)}>
               {s}
             </button>
           ))}
@@ -117,7 +179,14 @@ export function Coach() {
             <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2, color: "var(--violet)" }} /> Thinking…
           </div>
         )}
-        {error && <div className="banner error">{error}</div>}
+        {error && (
+          <div className="banner error col" style={{ alignItems: "flex-start", gap: 8 }}>
+            <span>{error}</span>
+            <button className="btn sm" onClick={() => openInClaude(coachPrompt(messages.filter((m) => m.role === "user").at(-1)?.content ?? "", getState()))}>
+              <ExternalLink size={14} /> Ask in the Claude app instead
+            </button>
+          </div>
+        )}
         <div ref={endRef} />
       </div>
 
@@ -128,8 +197,8 @@ export function Coach() {
           void send(input);
         }}
       >
-        <input className="input" placeholder="Ask your coach…" value={input} onChange={(e) => setInput(e.target.value)} disabled={!aiAvailable} />
-        <button className="btn primary" style={{ width: 52, padding: 0 }} disabled={!input.trim() || loading || !aiAvailable} aria-label="Send">
+        <input className="input" placeholder="Ask your coach…" value={input} onChange={(e) => setInput(e.target.value)} enterKeyHint="send" />
+        <button className="btn primary" style={{ width: 52, padding: 0 }} disabled={!input.trim() || loading} aria-label="Send">
           <Send size={18} />
         </button>
       </form>

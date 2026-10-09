@@ -16,7 +16,7 @@ async function copy(text: string): Promise<boolean> {
   }
 }
 
-export function Import() {
+export function Import({ pasteOnly = false }: { pasteOnly?: boolean }) {
   const nav = useNav();
   const [opened, setOpened] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -148,7 +148,14 @@ export function Import() {
   }
 
   return (
-    <Overlay title="Add a program">
+    <Overlay title={pasteOnly ? "Add Claude's plan" : "Add a program"}>
+      {pasteOnly ? (
+        <div className="col" style={{ gap: 6 }}>
+          <h2 style={{ fontSize: 24, fontWeight: 850 }}>Paste Claude's plan</h2>
+          <p className="muted">Claude is writing your plan in the Claude app. When it's done, tap Copy on its code block, come back here and paste.</p>
+        </div>
+      ) : (
+        <>
       <div className="col" style={{ gap: 6 }}>
         <h2 style={{ fontSize: 24, fontWeight: 850 }}>Convert any plan with Claude</h2>
         <p className="muted">Claude reads your program file in the Claude app (included with your subscription) and RepRise turns its reply into a tracked plan with rep targets and rest timers.</p>
@@ -184,8 +191,11 @@ export function Import() {
         </p>
       </Step>
 
+        </>
+      )}
+
       <div id="paste-step">
-        <Step n={3} title="Paste it into RepRise">
+        <Step n={pasteOnly ? 1 : 3} title="Paste it into RepRise">
           <button className="btn primary block" onClick={pasteFromClipboard}>
             <ClipboardPaste size={17} /> Paste from Claude
           </button>

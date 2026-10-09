@@ -1064,3 +1064,7 @@ textarea,
     width: min(76vw, 330px);
   }
 }
+
+.tap-circle.dim {
+  filter: saturate(0.4) brightness(0.85);
+}
