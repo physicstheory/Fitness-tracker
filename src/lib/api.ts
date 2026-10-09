@@ -28,15 +28,6 @@ export async function aiStatus(): Promise<boolean> {
   }
 }
 
-export function importProgram(input: { file?: File; text?: string; notes?: string; profile: unknown }) {
-  const form = new FormData();
-  if (input.file) form.append("file", input.file);
-  if (input.text) form.append("text", input.text);
-  if (input.notes) form.append("notes", input.notes);
-  form.append("profile", JSON.stringify(input.profile));
-  return request<{ program: AIProgram }>("/api/programs/import", { method: "POST", body: form });
-}
-
 export function fetchGuide(body: { exercise: unknown; profile: unknown; history: unknown }) {
   return request<{ guide: Omit<ExerciseGuide, "generatedAt"> }>("/api/exercises/instructions", json(body));
 }

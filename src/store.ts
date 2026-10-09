@@ -8,7 +8,7 @@ const KEY = "reprise:v1";
 const DEFAULT_STATE: AppState = {
   version: 1,
   profile: { name: "", level: "beginner", limitations: "", equipment: "Bodyweight only" },
-  settings: { sound: true, vibrate: true, autoStartRest: true, countdownBeeps: true, dailyRepTarget: 100 },
+  settings: { sound: true, vibrate: true, autoStartRest: true, countdownBeeps: true, dailyRepTarget: 100, autoPlayMusic: true },
   customExercises: [],
   programs: [],
   active: null,

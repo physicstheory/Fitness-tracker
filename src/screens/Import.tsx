@@ -1,35 +1,60 @@
-import { useRef, useState } from "react";
-import { AlertTriangle, FileText, Image as ImageIcon, Play, Sparkles, Upload, X } from "lucide-react";
-import { AIBadge, AILoading, Overlay } from "../components/ui";
-import { importProgram } from "../lib/api";
-import { getState, saveAIProgram, setState, type AIProgram } from "../store";
+import { useEffect, useState } from "react";
+import { Check, ClipboardPaste, Copy, ExternalLink, Play } from "lucide-react";
+import { Overlay } from "../components/ui";
+import { CONVERT_PROMPT, parseProgram } from "../lib/programFormat";
+import { saveAIProgram, setState, type AIProgram } from "../store";
 import { useNav } from "../nav";
-import { useAIAvailable } from "../hooks";
 
-const ACCEPT = ".pdf,.docx,.txt,.md,.csv,.json,.html,image/png,image/jpeg,image/webp,image/gif";
+const CLAUDE_URL = `https://claude.ai/new?q=${encodeURIComponent(CONVERT_PROMPT)}`;
+
+async function copy(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function Import() {
   const nav = useNav();
-  const aiAvailable = useAIAvailable();
-  const [file, setFile] = useState<File | null>(null);
+  const [opened, setOpened] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [text, setText] = useState("");
-  const [notes, setNotes] = useState("");
-  const [drag, setDrag] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<AIProgram | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  async function run() {
-    setLoading(true);
-    setError("");
+  // Coming back from the Claude app: bring the paste step into view.
+  useEffect(() => {
+    if (!opened) return;
+    const onVis = () => document.visibilityState === "visible" && document.getElementById("paste-step")?.scrollIntoView({ behavior: "smooth" });
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [opened]);
+
+  function tryParse(value: string) {
+    setText(value);
+    if (!value.trim()) return setError("");
     try {
-      const { program } = await importProgram({ file: file ?? undefined, text: text.trim() || undefined, notes, profile: getState().profile });
-      setResult(program);
+      setResult(parseProgram(value));
+      setError("");
     } catch (e) {
       setError((e as Error).message);
-    } finally {
-      setLoading(false);
+    }
+  }
+
+  async function openClaude() {
+    // Copy too, in case the Claude app doesn't pick up the pre-filled message.
+    setCopied(await copy(CONVERT_PROMPT));
+    window.open(CLAUDE_URL, "_blank", "noopener");
+    setOpened(true);
+  }
+
+  async function pasteFromClipboard() {
+    try {
+      tryParse(await navigator.clipboard.readText());
+    } catch {
+      setError("Your browser blocked clipboard access. Long-press the box below and choose Paste.");
     }
   }
 
@@ -40,38 +65,20 @@ export function Import() {
     nav.replace({ name: "program", id });
   }
 
-  if (loading) {
-    return (
-      <Overlay title="Importing program">
-        <AILoading
-          messages={[
-            `Reading ${file?.name ?? "your program"}…`,
-            "Finding exercises, sets and reps…",
-            "Working out rest periods…",
-            "Writing exercise instructions…",
-            "Laying out your weekly schedule…",
-            "Almost there…",
-          ]}
-        />
-        <p className="small faint" style={{ textAlign: "center" }}>
-          Long programs can take a minute.
-        </p>
-      </Overlay>
-    );
-  }
-
   if (result) {
     const weeks = [...new Set(result.days.map((d) => d.week))];
     return (
-      <Overlay title="Review program">
+      <Overlay title="Review program" onClose={() => setResult(null)}>
         <div className="row">
-          <AIBadge label="AI IMPORTED" />
+          <span className="chip good">
+            <Check size={13} /> Converted by Claude
+          </span>
         </div>
         <label className="field">
           Program name
           <input className="input" value={result.name} onChange={(e) => setResult({ ...result, name: e.target.value })} />
         </label>
-        <p className="muted">{result.description}</p>
+        {result.description && <p className="muted">{result.description}</p>}
         <div className="grid-3">
           <div className="stat">
             <span className="value num">{result.durationWeeks}</span>
@@ -136,92 +143,70 @@ export function Import() {
         <button className="btn block" onClick={() => save(false)}>
           Save to my programs
         </button>
-        <button className="btn ghost block" onClick={() => setResult(null)}>
-          Try again
-        </button>
       </Overlay>
     );
   }
 
   return (
-    <Overlay title="Import a program">
+    <Overlay title="Add a program">
       <div className="col" style={{ gap: 6 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 850 }}>Turn any plan into a tracked challenge</h2>
-        <p className="muted">
-          Upload a workout plan from a coach, a PDF you downloaded, or a photo of a whiteboard. The AI reads it, adds every exercise with instructions, and builds rep targets and rest timers.
-        </p>
+        <h2 style={{ fontSize: 24, fontWeight: 850 }}>Convert any plan with Claude</h2>
+        <p className="muted">Claude reads your program file in the Claude app (included with your subscription) and RepRise turns its reply into a tracked plan with rep targets and rest timers.</p>
       </div>
 
-      {!aiAvailable && (
-        <div className="banner">
-          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>AI isn't configured on the server yet. Add ANTHROPIC_API_KEY to the server's .env file to enable importing.</span>
-        </div>
-      )}
+      <Step n={1} title="Send your program to Claude">
+        <p className="small muted">Opens a new Claude chat with the instructions already written. In Claude:</p>
+        <ul className="clean small">
+          <li>
+            Tap the <b>ghost icon</b> to make it an incognito chat (optional)
+          </li>
+          <li>
+            Tap <b>+</b> and attach your program file or photo
+          </li>
+          <li>Send</li>
+        </ul>
+        <button className="btn primary block" onClick={openClaude}>
+          <ExternalLink size={17} /> Open Claude
+        </button>
+        {opened && (
+          <p className="small faint">
+            {copied ? "Instructions also copied. If Claude's message box is empty, paste them in." : "If Claude's message box is empty, use Copy instructions below."}
+          </p>
+        )}
+        <button className="btn sm ghost" onClick={async () => setCopied(await copy(CONVERT_PROMPT))}>
+          <Copy size={14} /> {copied ? "Copied" : "Copy instructions"}
+        </button>
+      </Step>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept={ACCEPT}
-        hidden
-        onChange={(e) => {
-          setFile(e.target.files?.[0] ?? null);
-          e.target.value = "";
-        }}
-      />
-      {file ? (
-        <div className="card flat row">
-          <div className="emoji-badge">{file.type.startsWith("image/") ? <ImageIcon /> : <FileText />}</div>
-          <div className="grow" style={{ minWidth: 0 }}>
-            <div className="ellipsis" style={{ fontWeight: 700 }}>
-              {file.name}
-            </div>
-            <div className="small muted">{(file.size / 1024).toFixed(0)} KB</div>
-          </div>
-          <button className="icon-btn" onClick={() => setFile(null)} aria-label="Remove file">
-            <X size={18} />
+      <Step n={2} title="Copy Claude's reply">
+        <p className="small muted">
+          When Claude finishes, tap <b>Copy</b> on its code block and come back here.
+        </p>
+      </Step>
+
+      <div id="paste-step">
+        <Step n={3} title="Paste it into RepRise">
+          <button className="btn primary block" onClick={pasteFromClipboard}>
+            <ClipboardPaste size={17} /> Paste from Claude
           </button>
-        </div>
-      ) : (
-        <div
-          className={`dropzone ${drag ? "drag" : ""}`}
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDrag(true);
-          }}
-          onDragLeave={() => setDrag(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDrag(false);
-            const f = e.dataTransfer.files?.[0];
-            if (f) setFile(f);
-          }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="emoji-badge" style={{ background: "var(--accent-soft)" }}>
-            <Upload color="var(--accent)" />
-          </div>
-          <div style={{ fontWeight: 750 }}>Tap to upload or drop a file</div>
-          <div className="small muted">PDF, Word (.docx), image, text or CSV · up to 25 MB</div>
-        </div>
-      )}
-
-      <label className="field">
-        Or paste the program text
-        <textarea className="input" placeholder={"Week 1\nMon: Push-ups 3x10, Squats 3x15, Plank 3x30s\n…"} value={text} onChange={(e) => setText(e.target.value)} />
-      </label>
-      <label className="field">
-        Anything the AI should know? (optional)
-        <input className="input" placeholder="e.g. I can only train 3 days a week, skip running" value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </label>
-
-      {error && <div className="banner error">{error}</div>}
-
-      <button className="btn primary lg block" disabled={!aiAvailable || (!file && !text.trim())} onClick={run}>
-        <Sparkles size={18} /> Build my program
-      </button>
+          <textarea className="input" placeholder="…or long-press here and paste" value={text} onChange={(e) => tryParse(e.target.value)} style={{ minHeight: 70 }} />
+          {error && <div className="banner error">{error}</div>}
+        </Step>
+      </div>
     </Overlay>
+  );
+}
+
+function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <div className="card col" style={{ gap: 10 }}>
+      <div className="row">
+        <span className="check-dot next" style={{ fontWeight: 800, fontSize: 13 }}>
+          {n}
+        </span>
+        <h3 style={{ fontSize: 17 }}>{title}</h3>
+      </div>
+      {children}
+    </div>
   );
 }

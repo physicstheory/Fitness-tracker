@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Check, Minus, Pause, Play, Plus, SkipForward, Trophy, X } from "lucide-react";
+import { BookOpen, Check, Minus, Music, Pause, Play, Plus, SkipForward, Trophy, X } from "lucide-react";
 import { Confetti, ProgressRing, Sheet, setLabel } from "../components/ui";
 import { ExerciseGuide } from "../components/ExerciseGuide";
+import { WorkoutMusic, useSpotifyConnected } from "../components/Music";
 import { feedback, unlockAudio } from "../lib/feedback";
 import { fmtDuration, fmtTime, goalProgress } from "../lib/stats";
 import { findExercise, findProgram, getState, setState, uid, useAppState } from "../store";
@@ -41,6 +42,8 @@ export function Workout({ programId, dayId, exerciseId }: { programId?: string; 
   const [timerStart, setTimerStart] = useState(0);
   const [paused, setPaused] = useState<number | null>(null); // elapsed ms when paused
   const [showGuide, setShowGuide] = useState(false);
+  const [showMusic, setShowMusic] = useState(true);
+  const hasMusic = useSpotifyConnected() || Boolean(state.settings.workoutMusic);
   const [confirmExit, setConfirmExit] = useState(false);
   const [feeling, setFeeling] = useState<WorkoutLog["feeling"]>();
   const [celebrate, setCelebrate] = useState(false);
@@ -238,10 +241,22 @@ export function Workout({ programId, dayId, exerciseId }: { programId?: string; 
               </span>
               {startedAt > 0 && phase !== "summary" && <span className="num small muted">{fmtTime((now - startedAt) / 1000)}</span>}
             </div>
+            {hasMusic && (
+              <button
+                className="icon-btn"
+                onClick={() => setShowMusic((v) => !v)}
+                aria-label={showMusic ? "Hide music" : "Show music"}
+                style={showMusic ? { background: "#1db954", borderColor: "#1db954", color: "#fff" } : undefined}
+              >
+                <Music size={18} />
+              </button>
+            )}
             <button className="icon-btn" onClick={() => setShowGuide(true)} aria-label="How to" disabled={!exercise}>
               <BookOpen size={18} />
             </button>
           </div>
+
+          <WorkoutMusic visible={showMusic} autoStart={startedAt > 0} />
 
           {phase === "intro" && <Intro title={day?.title ?? title} focus={day?.focus} items={items} onStart={start} />}
 

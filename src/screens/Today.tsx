@@ -1,4 +1,4 @@
-import { ChevronRight, Flame, Play, Settings as Cog, Sparkles, Target, Upload, Zap } from "lucide-react";
+import { ChevronRight, Flame, Play, Settings as Cog, Sparkles, Target, Plus, Zap } from "lucide-react";
 import { ProgressRing } from "../components/ui";
 import { addDays, dailyTotals, dayKey, goalProgress, streak } from "../lib/stats";
 import { findExercise, findProgram, useAppState } from "../store";
@@ -186,9 +186,9 @@ export function Today() {
 
       <div className="grid-2">
         <button className="card tap col" style={{ gap: 8 }} onClick={() => nav.push({ name: "import" })}>
-          <Upload size={22} color="var(--violet)" />
-          <span style={{ fontWeight: 750 }}>Import a program</span>
-          <span className="small muted">Upload a PDF, doc or photo and AI builds it</span>
+          <Plus size={22} color="var(--violet)" />
+          <span style={{ fontWeight: 750 }}>Add a program</span>
+          <span className="small muted">Claude converts your plan in one tap</span>
         </button>
         <button className="card tap col" style={{ gap: 8 }} onClick={() => nav.setTab("coach")}>
           <Sparkles size={22} color="var(--blue)" />

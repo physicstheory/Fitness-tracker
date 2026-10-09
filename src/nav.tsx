@@ -8,7 +8,7 @@ export type Route =
   | { name: "import" }
   | { name: "exercise"; id: string }
   | { name: "library" }
-  | { name: "settings" };
+  | { name: "settings"; notice?: string };
 
 interface Nav {
   tab: Tab;

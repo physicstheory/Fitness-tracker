@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronRight, Play, Sparkles, Trash2, Upload } from "lucide-react";
+import { Check, ChevronRight, Play, Sparkles, Trash2, Plus } from "lucide-react";
 import { AIBadge, Overlay, Sheet, setLabel } from "../components/ui";
 import { allPrograms, findExercise, findProgram, setState, useAppState } from "../store";
 import { useNav } from "../nav";
@@ -18,7 +18,7 @@ export function Programs() {
       <div className="screen-header">
         <h1>Programs</h1>
         <button className="btn sm primary" onClick={() => nav.push({ name: "import" })}>
-          <Upload size={15} /> Import
+          <Plus size={15} /> Add
         </button>
       </div>
 
@@ -34,8 +34,8 @@ export function Programs() {
           <Sparkles color="#fff" size={22} />
         </div>
         <div className="grow">
-          <div style={{ fontWeight: 750 }}>Add a program with AI</div>
-          <div className="small muted">Upload a PDF, Word doc, screenshot or paste text. The AI turns it into a trackable plan with timers.</div>
+          <div style={{ fontWeight: 750 }}>Add a program with Claude</div>
+          <div className="small muted">Claude converts your program file in the Claude app, then you paste it here. No API key needed.</div>
         </div>
         <ChevronRight className="faint" />
       </button>

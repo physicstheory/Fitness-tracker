@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BarChart3, Dumbbell, Home, MessageCircle, Target } from "lucide-react";
 import { NavProvider, useNav, type Route, type Tab } from "./nav";
 import { Today } from "./screens/Today";
@@ -31,12 +32,20 @@ function RouteView({ route }: { route: Route }) {
     case "library":
       return <Library />;
     case "settings":
-      return <Settings />;
+      return <Settings notice={route.notice} />;
   }
 }
 
-function Shell() {
-  const { tab, setTab, stack } = useNav();
+let spotifyHandled = false;
+
+function Shell({ spotifyReturn }: { spotifyReturn?: { notice?: string } }) {
+  const { tab, setTab, stack, push } = useNav();
+  // Back from Spotify sign-in: show the music settings.
+  useEffect(() => {
+    if (!spotifyReturn || spotifyHandled) return;
+    spotifyHandled = true;
+    push({ name: "settings", notice: spotifyReturn.notice });
+  }, [spotifyReturn, push]);
   return (
     <div className="app">
       {tab === "today" && <Today />}
@@ -59,10 +68,10 @@ function Shell() {
   );
 }
 
-export default function App() {
+export default function App({ spotifyReturn }: { spotifyReturn?: { notice?: string } }) {
   return (
     <NavProvider>
-      <Shell />
+      <Shell spotifyReturn={spotifyReturn} />
     </NavProvider>
   );
 }

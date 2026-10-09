@@ -8,7 +8,8 @@ A mobile-first web app for tracking reps, with built-in rest timers and an AI co
 - **Rest and cooldown timers.** A rest countdown starts automatically after each set, using that exercise's rest time from the program. You can add or remove 15 seconds or skip it, and it beeps for the last 3 seconds.
 - **Timed exercises.** Planks and wall sits get a 3-2-1 get-ready countdown, then a countdown or stopwatch with pause.
 - **Built-in challenges.** 100 Push-Up Challenge (classic 6-week progression plus a final test), Squat Challenge, Plank Builder and Full Body Starter.
-- **AI program import.** Upload a PDF, Word (.docx), image or screenshot, or a text/CSV file, or paste text. The AI pulls out every session, set, rep target and rest period, adds any new exercises with instructions, and saves it to **Programs**.
+- **Add programs with Claude (no API key needed).** **Open Claude** starts a new chat in the Claude app with the conversion instructions already filled in. Attach your program file, send, copy Claude's reply, and tap **Paste from Claude**. RepRise turns it into a program with every session, set, rep target, rest period and exercise instructions.
+- **Spotify.** Paste a playlist link to get Spotify's player inside workouts, with no sign-in. Or connect your Spotify account to pick a workout playlist, see what's playing, skip songs, and start the music automatically with each workout. Controlling playback needs Spotify Premium.
 - **AI coaching per exercise.** Step-by-step instructions, cues, breathing, regressions and progressions, tailored to your level, injuries and recent sets.
 - **Goals with AI plans.** Set a target, for example 100 push-ups in one set, 500 squats in a day, or a cumulative total, with a deadline. The AI checks whether it's realistic, writes weekly milestones, and builds a full program to get you there.
 - **Coach chat.** Ask about form, plateaus or recovery. The coach can see your history, goals and active program.
@@ -44,12 +45,21 @@ The server (`server/`) calls Claude through the official `@anthropic-ai/sdk`:
 
 | Endpoint | What it does |
 | --- | --- |
-| `POST /api/programs/import` | File or text → structured program (structured outputs, streamed) |
 | `POST /api/exercises/instructions` | Personalised exercise guide |
 | `POST /api/goals/plan` | Feasibility, weekly milestones and a full program for a goal |
 | `POST /api/coach/chat` | Coach chat with your training context |
 
-It uses `claude-opus-5-5` by default (override with `ANTHROPIC_MODEL`), with server-side refusal fallbacks turned on. Without an API key the app still works fully as a tracker, and the AI buttons explain how to enable them.
+It uses `claude-opus-5-5` by default (override with `ANTHROPIC_MODEL`), with server-side refusal fallbacks turned on. These API features are optional. Without an API key the app still works fully as a tracker, and adding programs goes through the Claude app instead.
+
+## Spotify setup (optional)
+
+Pasting a playlist link works with no setup. For the full connection:
+
+1. Create an app at https://developer.spotify.com/dashboard and tick "Web API".
+2. Add your site's address as a Redirect URI, for example `https://your-app.onrender.com/`. Spotify only accepts `https://`, or `http://127.0.0.1:5173/` for local testing.
+3. Put the Client ID in `.env` as `VITE_SPOTIFY_CLIENT_ID` before building, or paste it into **Settings → Spotify** in the app.
+
+While a Spotify app is in development mode, only accounts you add under **User Management** in the Spotify dashboard can connect.
 
 ## Project layout
 

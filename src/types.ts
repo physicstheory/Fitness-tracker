@@ -119,6 +119,10 @@ export interface Settings {
   autoStartRest: boolean;
   countdownBeeps: boolean;
   dailyRepTarget: number;
+  /** Spotify app Client ID, if not provided at build time via VITE_SPOTIFY_CLIENT_ID. */
+  spotifyClientId?: string;
+  workoutMusic?: { uri: string; name: string; image?: string };
+  autoPlayMusic: boolean;
 }
 
 export interface ActiveProgram {

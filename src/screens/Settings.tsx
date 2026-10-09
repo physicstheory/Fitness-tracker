@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
 import { ChevronRight, Download, Dumbbell, Upload } from "lucide-react";
 import { Overlay, Sheet, Switch } from "../components/ui";
+import { MusicSettings } from "../components/Music";
 import { getState, replaceState, resetState, setState, useAppState } from "../store";
 import { useNav } from "../nav";
 import type { AppState, Level, Profile, Settings as SettingsT } from "../types";
 
-export function Settings() {
+export function Settings({ notice }: { notice?: string }) {
   const state = useAppState();
   const nav = useNav();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -88,6 +89,8 @@ export function Settings() {
         <Switch label="Vibration" hint="On supported phones" on={state.settings.vibrate} onChange={(v) => setSettings({ vibrate: v })} />
         <Switch label="Auto-start rest timer" hint="Start the cooldown as soon as a set is done" on={state.settings.autoStartRest} onChange={(v) => setSettings({ autoStartRest: v })} />
       </div>
+
+      <MusicSettings notice={notice} />
 
       <button className="card tap row" onClick={() => nav.push({ name: "library" })}>
         <span className="emoji-badge">

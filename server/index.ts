@@ -3,58 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import express from "express";
-import multer from "multer";
-import mammoth from "mammoth";
 import type Anthropic from "@anthropic-ai/sdk";
-import { AIError, aiConfigured, chat, describeError, structured } from "./ai.ts";
-import { GoalPlanSchema, InstructionsSchema, ProgramSchema } from "./schemas.ts";
+import { aiConfigured, chat, describeError, structured } from "./ai.ts";
+import { GoalPlanSchema, InstructionsSchema } from "./schemas.ts";
 
 const app = express();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 app.use(express.json({ limit: "2mb" }));
-
-const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
-const TEXT_EXT = new Set([".txt", ".md", ".markdown", ".csv", ".tsv", ".json", ".rtf", ".html", ".htm"]);
-
-type Block = Anthropic.Beta.BetaContentBlockParam;
-
-/** Converts an uploaded file into content blocks Claude can read. */
-async function fileToBlocks(file: Express.Multer.File): Promise<Block[]> {
-  const ext = path.extname(file.originalname).toLowerCase();
-  const mime = file.mimetype;
-  if (mime === "application/pdf" || ext === ".pdf") {
-    return [
-      {
-        type: "document",
-        title: file.originalname,
-        source: { type: "base64", media_type: "application/pdf", data: file.buffer.toString("base64") },
-      },
-    ];
-  }
-  if (IMAGE_TYPES.has(mime)) {
-    return [
-      {
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: mime as "image/png" | "image/jpeg" | "image/gif" | "image/webp",
-          data: file.buffer.toString("base64"),
-        },
-      },
-    ];
-  }
-  let text: string | null = null;
-  if (ext === ".docx") {
-    text = (await mammoth.extractRawText({ buffer: file.buffer })).value;
-  } else if (mime.startsWith("text/") || TEXT_EXT.has(ext) || mime === "application/json") {
-    text = file.buffer.toString("utf8");
-  }
-  if (text == null) {
-    throw new AIError("Unsupported file type. Upload a PDF, Word (.docx), image, or text/CSV file.", 415);
-  }
-  if (!text.trim()) throw new AIError("That file appears to be empty.", 400);
-  return [{ type: "document", title: file.originalname, source: { type: "text", media_type: "text/plain", data: text } }];
-}
 
 function profileText(profile: unknown): string {
   if (!profile || typeof profile !== "object") return "No profile provided.";
@@ -77,41 +31,6 @@ const requireAI: express.RequestHandler = (_req, res, next) => {
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, ai: aiConfigured() });
-});
-
-// Upload a fitness program (PDF, DOCX, image, text) and turn it into a structured program.
-app.post("/api/programs/import", requireAI, upload.single("file"), async (req, res) => {
-  try {
-    const blocks: Block[] = [];
-    if (req.file) blocks.push(...(await fileToBlocks(req.file)));
-    const pasted = typeof req.body?.text === "string" ? req.body.text.trim() : "";
-    if (pasted) blocks.push({ type: "text", text: `Program text pasted by the user:\n\n${pasted}` });
-    if (!blocks.length) {
-      res.status(400).json({ error: "Upload a file or paste the program text." });
-      return;
-    }
-    const notes = typeof req.body?.notes === "string" ? req.body.notes.trim() : "";
-    blocks.push({
-      type: "text",
-      text: `Convert the fitness program above into the app's program format.
-
-Rules:
-- Capture every scheduled session in order. If the program says "repeat weeks 1-2" or similar, expand it so each session is listed.
-- If a session is described only as a rule ("3 sets of 8-12"), choose concrete targets at the low end of ranges for early weeks and progress sensibly.
-- Use 0 for any max-effort, AMRAP or "to failure" set.
-- For timed holds or cardio intervals use type "time" and give set targets in seconds.
-- Use each exercise's conventional name and list each exercise once in "exercises", with practical instructions and cues.
-- If the document is not a fitness program, still return your best attempt and explain the problem in "notes".
-${notes ? `\nThe user added: ${notes}` : ""}
-
-User profile:
-${profileText(safeJSON(req.body?.profile))}`,
-    });
-    const program = await structured({ schema: ProgramSchema, content: blocks, effort: "medium" });
-    res.json({ program });
-  } catch (err) {
-    send(res, err);
-  }
 });
 
 // Personalised how-to for one exercise.
@@ -195,15 +114,6 @@ app.post("/api/coach/chat", requireAI, async (req, res) => {
     send(res, err);
   }
 });
-
-function safeJSON(value: unknown): unknown {
-  if (typeof value !== "string") return value;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
-  }
-}
 
 // In production, serve the built web app.
 const here = path.dirname(fileURLToPath(import.meta.url));
