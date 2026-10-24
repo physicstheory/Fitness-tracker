@@ -7,7 +7,11 @@ A mobile-first web app for tracking reps, with built-in rest timers and an AI co
 - **Tap-to-count rep tracker.** A big counter button with sounds and vibration, set targets (including max-effort sets), and +/- correction. On desktop, Space counts a rep and Enter finishes the set.
 - **Rest and cooldown timers.** A rest countdown starts automatically after each set, using that exercise's rest time from the program. You can add or remove 15 seconds or skip it, and it beeps for the last 3 seconds.
 - **Timed exercises.** Planks and wall sits get a 3-2-1 get-ready countdown, then a countdown or stopwatch with pause.
-- **Muscle map and form animations.** Before every workout, and in each exercise's guide, see front and back body diagrams with the worked muscles pulsing orange, or an animated figure showing how to do the movement.
+- **Liftoff-style progression.** Earn XP for every set and level up. Each muscle has a rank from Bronze to Legend, shown on a body map.
+- **Smart coach (works offline).** A recovery map, today's suggested focus, push/pull and quad/hamstring balance, weekly sets per muscle, and progressive-overload targets ("You hit every set at 20 kg, go to 22 kg"). Tips also appear during your sets.
+- **Workout generator and builder.** Generate a session from a focus, the time you have, and your level, equipment and recovery. Or build your own routine with sets, reps, weight and rest, and save it for one-tap starts.
+- **127-exercise library** with muscle-group filters and equipment awareness.
+- **Muscle map and form animations.** 50+ animated movements use a shaded mannequin figure with "Lower / Press" phase cues. Before every workout, and in each exercise's guide, see front and back body diagrams with the worked muscles pulsing orange, or an animated figure showing how to do the movement.
 - **Equipment and gym training.** Tick the equipment you own on the Today screen to filter exercises and flag programs that need more. Includes 16 dumbbell, barbell, kettlebell, cable and machine exercises, weight logging per set (kg or lb), heaviest-lift records, and Dumbbell Starter and Gym Strength 5×5 programs.
 - **Built-in challenges.** 100 Push-Up Challenge (classic 6-week progression plus a final test), Squat Challenge, Plank Builder and Full Body Starter.
 - **Add programs with Claude (no API key needed).** **Open Claude** starts a new chat in the Claude app with the conversion instructions already filled in. Attach your program file, send, copy Claude's reply, and tap **Paste from Claude**. RepRise turns it into a program with every session, set, rep target, rest period and exercise instructions.
@@ -19,6 +23,22 @@ A mobile-first web app for tracking reps, with built-in rest timers and an AI co
 - **Installable PWA.** Add it to your home screen, and it keeps working offline after the first visit (AI features need a connection). Light and dark modes are supported.
 
 Your data is stored on your device in local storage. Use **Settings → Export** to back it up or move it to another device.
+
+## iPhone app (sideload)
+
+RepRise is also a native iOS app, built with Capacitor. Every push builds an unsigned `RepRise.ipa` on GitHub Actions (**Actions → iOS app**). Each build is also published under **Releases** as `ios-build-N`.
+
+To install it:
+
+1. Download **RepRise.ipa** from the latest `ios-build-N` release.
+2. Install **Sideloadly** (Windows/Mac, sideloadly.io) or **AltStore** (altstore.io).
+3. Plug in your iPhone, drag the `.ipa` into Sideloadly, sign in with your Apple ID, and click Start.
+4. On the iPhone, go to **Settings → General → VPN & Device Management**, tap your Apple ID and choose **Trust**.
+5. On iOS 16 and later, turn on **Settings → Privacy & Security → Developer Mode** and restart.
+
+With a free Apple ID the app has to be re-signed every 7 days. Sideloadly or AltStore can refresh it, and your data stays on the phone.
+
+The app works fully offline. The coach and program import use your Claude app. To use the server's in-app AI as well, enter your server address under **Settings → AI server**, or set a repository variable `API_BASE` before building.
 
 ## Running it
 

@@ -16,6 +16,8 @@ export const EQUIPMENT: Equipment[] = [
   { id: "bands", name: "Resistance bands", emoji: "🪢" },
   { id: "cable", name: "Cable machine", emoji: "🎛️" },
   { id: "leg_press", name: "Leg press machine", emoji: "🦿" },
+  { id: "machines", name: "Other gym machines", emoji: "🏢" },
+  { id: "box", name: "Plyo box / step", emoji: "📦" },
   { id: "mat", name: "Exercise mat", emoji: "🧘" },
   { id: "jump_rope", name: "Jump rope", emoji: "➰" },
 ];
@@ -35,6 +37,8 @@ const KEYWORDS: [RegExp, string][] = [
   [/cable|pulley|machine|lat pull-?down/i, "cable"],
   [/leg press/i, "leg_press"],
   [/jump rope|skipping rope/i, "jump_rope"],
+  [/plyo box|\bbox\b|step platform/i, "box"],
+  [/treadmill|rowing machine|stationary bike|exercise bike|pec deck|smith/i, "machines"],
 ];
 
 /** Guesses the equipment an exercise needs from free text (for imported exercises). */
@@ -46,6 +50,6 @@ export function inferEquipment(text: string): string[] {
 }
 
 /** Weighted = the load comes from equipment, so a weight is logged per set. */
-export const WEIGHTED_EQUIPMENT = new Set(["dumbbells", "barbell", "kettlebell", "cable", "leg_press"]);
+export const WEIGHTED_EQUIPMENT = new Set(["dumbbells", "barbell", "kettlebell", "cable", "leg_press", "machines"]);
 
 export const equipmentName = (id: string) => EQUIPMENT.find((e) => e.id === id)?.name ?? id;

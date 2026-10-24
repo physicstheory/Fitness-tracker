@@ -2,6 +2,8 @@ import { ChevronRight, Dumbbell, Flame, PauseCircle, Play, Settings as Cog, Spar
 import { useState } from "react";
 import { ProgressRing, Sheet } from "../components/ui";
 import { EquipmentPicker } from "../components/EquipmentPicker";
+import { levelFor, totalXP } from "../lib/progression";
+import { FOCI, suggestedFocus } from "../lib/coach";
 import { EQUIPMENT, equipmentName } from "../data/equipment";
 import type { Exercise } from "../types";
 import { addDays, dailyTotals, dayKey, fmtTime, goalProgress, streak } from "../lib/stats";
@@ -32,6 +34,8 @@ export function Today() {
     .filter((e): e is Exercise => !!e && canDo(e, state))
     .concat(state.customExercises.filter((e) => canDo(e, state)).slice(0, 2));
   const [editEquipment, setEditEquipment] = useState(false);
+  const lv = levelFor(totalXP(state));
+  const pick = suggestedFocus(state);
   const owned = state.profile.equipmentList ?? [];
   const available = allExercises(state).filter((e) => canDo(e, state)).length;
 
@@ -44,6 +48,13 @@ export function Today() {
             {greet}
             {state.profile.name ? `, ${state.profile.name}` : ""}
           </h1>
+          <button className="row level-chip" onClick={() => nav.setTab("progress")}>
+            <span className="num">Lv {lv.level}</span>
+            <span className="level-bar">
+              <span style={{ width: `${Math.round(lv.progress * 100)}%` }} />
+            </span>
+            <span>{lv.title}</span>
+          </button>
         </div>
         <button className="icon-btn" onClick={() => nav.push({ name: "settings" })} aria-label="Settings">
           <Cog size={20} />
@@ -169,6 +180,18 @@ export function Today() {
           <ChevronRight className="faint" />
         </button>
       )}
+
+      <button className="card tap row" onClick={() => nav.push({ name: "generate", focus: pick })}>
+        <span className="emoji-badge" style={{ background: "var(--grad)" }}>
+          <Sparkles color="#fff" size={22} />
+        </span>
+        <div className="grow">
+          <span className="eyebrow">Coach pick for today</span>
+          <div style={{ fontWeight: 800, fontSize: 17 }}>{FOCI.find((f) => f.id === pick)?.label} workout</div>
+          <div className="small muted">Built from your recovered muscles and equipment</div>
+        </div>
+        <ChevronRight className="faint" />
+      </button>
 
       <div className="section-title">
         <h2>Quick log</h2>

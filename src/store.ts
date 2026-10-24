@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { BUILTIN_EXERCISES, EXERCISE_EMOJIS, GYM_EXERCISES } from "./data/exercises";
+import { LIBRARY_EXERCISES } from "./data/library";
 import { ALWAYS_AVAILABLE, WEIGHTED_EQUIPMENT, inferEquipment } from "./data/equipment";
 import { BUILTIN_PROGRAMS, PROGRAM_COLORS } from "./data/programs";
 import type { AppState, Exercise, Program, ProgramDay } from "./types";
@@ -73,7 +74,7 @@ export function useAppState(): AppState {
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
 export function allExercises(s: AppState = state): Exercise[] {
-  return [...BUILTIN_EXERCISES, ...GYM_EXERCISES, ...s.customExercises];
+  return [...BUILTIN_EXERCISES, ...GYM_EXERCISES, ...LIBRARY_EXERCISES, ...s.customExercises];
 }
 
 /** Can the user do this exercise with the equipment they've ticked? */
@@ -199,4 +200,28 @@ export function saveAIProgram(ai: AIProgram, source: Program["source"]): string 
     return { ...s, customExercises: [...s.customExercises, ...created], programs: [program, ...s.programs] };
   });
   return programId;
+}
+
+/** Saves a single-session routine (from the builder or generator). Returns its program id. */
+export function saveRoutine(title: string, items: ProgramDay["items"], existingId?: string): string {
+  const id = existingId ?? `routine-${uid()}`;
+  setState((s) => {
+    const program: Program = {
+      id,
+      name: title || "My workout",
+      description: `${items.length} exercises`,
+      goal: "Custom routine",
+      level: s.profile.level,
+      durationWeeks: 1,
+      daysPerWeek: 1,
+      days: [{ id: `${id}-d`, week: 1, day: 1, title: title || "My workout", focus: "", items }],
+      notes: [],
+      source: "custom",
+      color: PROGRAM_COLORS[(s.programs.length + 3) % PROGRAM_COLORS.length],
+      createdAt: Date.now(),
+    };
+    const exists = s.programs.some((p) => p.id === id);
+    return { ...s, programs: exists ? s.programs.map((p) => (p.id === id ? program : p)) : [program, ...s.programs] };
+  });
+  return id;
 }

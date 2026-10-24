@@ -1,5 +1,7 @@
 import { bestSet, goalProgress, streak } from "./stats";
 import { PROGRAM_JSON_SPEC } from "./programFormat";
+import { insights, lastTrained, progressionFor, recoveryOf, weeklySets } from "./coach";
+import { MUSCLE_NAMES, type MuscleId } from "./muscles";
 import { allExercises, findExercise, findProgram } from "../store";
 import type { AppState, Exercise, Goal } from "../types";
 
@@ -46,9 +48,43 @@ export function trainingSummary(s: AppState): string {
           .map((l) => `- ${l.date.slice(0, 10)} ${l.title}: ${l.entries.map((e) => `${findExercise(e.exerciseId, s)?.name} ${e.sets.map((x) => x.actual).join("/")}`).join(", ")}`)
           .join("\n")}`
       : "",
+    coachAnalysis(s),
     `Today is ${new Date().toDateString()}.`,
   ];
   return lines.filter(Boolean).join("\n");
+}
+
+/** The offline coach's numbers, so Claude's advice builds on them. */
+function coachAnalysis(s: AppState): string {
+  if (!s.logs.length) return "";
+  const sets = weeklySets(s);
+  const trained = lastTrained(s);
+  const weekly = Object.entries(sets)
+    .filter(([, v]) => (v ?? 0) > 0)
+    .map(([m, v]) => `${MUSCLE_NAMES[m as MuscleId]} ${Math.round((v ?? 0) * 10) / 10}`)
+    .join(", ");
+  const fatigued = Object.entries(trained)
+    .filter(([, h]) => recoveryOf(h) !== "fresh")
+    .map(([m, h]) => `${MUSCLE_NAMES[m as MuscleId]} (${Math.round(h ?? 0)}h ago)`)
+    .join(", ");
+  const ids: string[] = [];
+  for (const l of s.logs) for (const e of l.entries) if (!ids.includes(e.exerciseId)) ids.push(e.exerciseId);
+  const next = ids
+    .slice(0, 6)
+    .map((id) => {
+      const p = progressionFor(s, id);
+      return p ? `${findExercise(id, s)?.name}: ${p.advice}` : "";
+    })
+    .filter(Boolean);
+  const notes = insights(s).map((i) => `${i.title}. ${i.body}`);
+  return [
+    weekly && `Sets per muscle in the last 7 days: ${weekly}.`,
+    fatigued && `Recently trained (still recovering): ${fatigued}.`,
+    next.length && `Progression notes:\n- ${next.join("\n- ")}`,
+    notes.length && `App insights:\n- ${notes.join("\n- ")}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 const goalLabel = (g: Goal) => (g.metric === "max_set" ? "in one set" : g.metric === "daily_total" ? "in one day" : "cumulative total");
@@ -60,7 +96,7 @@ ${trainingSummary(s)}
 
 My question: ${question}
 
-Keep it practical and specific to my numbers. If I mention pain, tell me to stop and see a professional.`;
+Be a direct, knowledgeable strength coach: give specific sets, reps, weights and exercise swaps based on my numbers (and only exercises my equipment allows). Explain the why in a sentence. If I mention pain, tell me to stop and see a professional.`;
 }
 
 export function exerciseGuidePrompt(ex: Exercise, s: AppState): string {

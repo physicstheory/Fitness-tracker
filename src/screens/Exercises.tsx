@@ -1,54 +1,23 @@
-import { useState } from "react";
-import { ChevronRight, Play, Search } from "lucide-react";
+import { ChevronRight, Play } from "lucide-react";
 import { BarChart, Overlay } from "../components/ui";
 import { ExerciseGuide } from "../components/ExerciseGuide";
 import { bestSet, bestWeight, dailyTotals, lifetimeTotal } from "../lib/stats";
-import { allExercises, canDo, findExercise, useAppState } from "../store";
-import { equipmentName } from "../data/equipment";
+import { findExercise, useAppState } from "../store";
+import { ExerciseRow, FilterBar, useExerciseFilter } from "../components/ExercisePicker";
 import { useNav } from "../nav";
 
 export function Library() {
-  const state = useAppState();
   const nav = useNav();
-  const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"available" | "all">("available");
-  const list = allExercises(state)
-    .filter((e) => (e.name + e.muscleGroups.join(" ") + e.equipment).toLowerCase().includes(q.toLowerCase()))
-    .filter((e) => filter === "all" || canDo(e, state));
+  const f = useExerciseFilter();
   return (
     <Overlay title="Exercise library">
-      <div className="row card flat" style={{ padding: "4px 14px" }}>
-        <Search size={18} className="faint" />
-        <input className="input" style={{ background: "transparent", border: 0, padding: "10px 0" }} placeholder="Search exercises, muscles or equipment" value={q} onChange={(e) => setQ(e.target.value)} />
-      </div>
-      <div className="seg">
-        <button className={filter === "available" ? "on" : ""} onClick={() => setFilter("available")}>
-          With my equipment
-        </button>
-        <button className={filter === "all" ? "on" : ""} onClick={() => setFilter("all")}>
-          All exercises
-        </button>
-      </div>
-      {list.length === 0 && <p className="small muted" style={{ textAlign: "center" }}>No matches. Try "All exercises" or add equipment on the Today screen.</p>}
+      <FilterBar f={f} />
+      <span className="small faint">{f.list.length} exercises</span>
       <div className="card flat list" style={{ padding: "4px 16px" }}>
-        {list.map((e) => {
-          const ok = canDo(e, state);
-          return (
-            <button key={e.id} className="list-item" onClick={() => nav.push({ name: "exercise", id: e.id })} style={ok ? undefined : { opacity: 0.6 }}>
-              <span className="emoji-badge">{e.emoji}</span>
-              <div className="grow" style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700 }}>
-                  {e.name} {e.weighted && <span className="chip" style={{ padding: "1px 7px", marginLeft: 4 }}>weights</span>}
-                </div>
-                <div className="small muted ellipsis">
-                  {ok ? e.muscleGroups.join(", ") || e.equipment : `Needs ${(e.equipmentIds ?? []).map(equipmentName).join(", ")}`}
-                </div>
-              </div>
-              {state.guides[e.id] && <span className="chip accent">AI</span>}
-              <ChevronRight size={18} className="faint" />
-            </button>
-          );
-        })}
+        {f.list.map((e) => (
+          <ExerciseRow key={e.id} e={e} onClick={() => nav.push({ name: "exercise", id: e.id })} right={<ChevronRight size={18} className="faint" />} />
+        ))}
+        {!f.list.length && <p className="small muted" style={{ textAlign: "center", padding: 16 }}>No matches. Turn off "My equipment" to see everything.</p>}
       </div>
     </Overlay>
   );

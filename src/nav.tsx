@@ -1,10 +1,13 @@
+import type { ProgramItem } from "./types";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type Tab = "today" | "programs" | "goals" | "progress" | "coach";
 
 export type Route =
   | { name: "program"; id: string }
-  | { name: "workout"; programId?: string; dayId?: string; exerciseId?: string; resume?: boolean }
+  | { name: "workout"; programId?: string; dayId?: string; exerciseId?: string; resume?: boolean; items?: ProgramItem[]; title?: string }
+  | { name: "generate"; focus?: string }
+  | { name: "builder"; id?: string; items?: ProgramItem[]; title?: string }
   | { name: "import"; pasteOnly?: boolean }
   | { name: "exercise"; id: string }
   | { name: "library" }

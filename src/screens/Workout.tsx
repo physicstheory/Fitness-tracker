@@ -5,6 +5,8 @@ import { ExerciseGuide } from "../components/ExerciseGuide";
 import { WorkoutMusic, useSpotifyConnected } from "../components/Music";
 import { feedback, unlockAudio } from "../lib/feedback";
 import { fmtDuration, fmtTime, goalProgress, lastWeight } from "../lib/stats";
+import { levelFor, totalXP, workoutXP } from "../lib/progression";
+import { progressionFor } from "../lib/coach";
 import { ExerciseVisual } from "../components/ExerciseVisual";
 import { equipmentName } from "../data/equipment";
 import { canDo, findExercise, findProgram, getState, setState, uid, useAppState } from "../store";
@@ -27,7 +29,22 @@ function paceFor(exerciseId: string, settings: Settings, repPace: Record<string,
   return repPace[exerciseId] ?? DEFAULT_PACE;
 }
 
-export function Workout({ programId, dayId, exerciseId, resume }: { programId?: string; dayId?: string; exerciseId?: string; resume?: boolean }) {
+export function Workout({
+  programId,
+  dayId,
+  exerciseId,
+  resume,
+  items: givenItems,
+  title: givenTitle,
+}: {
+  programId?: string;
+  dayId?: string;
+  exerciseId?: string;
+  resume?: boolean;
+  /** An ad-hoc workout (e.g. from the generator). */
+  items?: ProgramItem[];
+  title?: string;
+}) {
   const nav = useNav();
   const state = useAppState();
   // When resuming, everything is restored from the saved snapshot taken at mount.
@@ -39,13 +56,14 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
 
   const [items, setItems] = useState<ProgramItem[]>(() => {
     if (saved) return saved.items;
+    if (givenItems?.length) return givenItems.map((it) => ({ ...it, sets: [...it.sets] }));
     if (day) return day.items.map((it) => ({ ...it, sets: [...it.sets] }));
     const ex = exerciseId ? findExercise(exerciseId, state) : undefined;
     return ex
       ? [{ exerciseId: ex.id, sets: [0, 0, 0], restSec: ex.defaultRestSec, notes: ex.type === "time" ? "Free session: hold as long as you can each set." : "Free session: log as many reps as you like each set." }]
       : [];
   });
-  const title = saved?.title ?? (day ? `${program!.name} · ${day.title}` : `${findExercise(items[0]?.exerciseId ?? "")?.name ?? "Quick"} session`);
+  const title = saved?.title ?? givenTitle ?? (day ? `${program!.name} · ${day.title}` : `${findExercise(items[0]?.exerciseId ?? "")?.name ?? "Quick"} session`);
 
   const [results, setResults] = useState<(number | undefined)[][]>(() =>
     saved ? saved.results.map((row) => row.map((v) => (v === null ? undefined : v))) : items.map((it) => it.sets.map(() => undefined)),
@@ -90,6 +108,7 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
   const isTime = exercise?.type === "time";
   const isAuto = !isTime && repMode === "auto";
   const usesTimer = isTime || isAuto;
+  const coachTip = useMemo(() => (item ? progressionFor(getState(), item.exerciseId)?.advice : undefined), [item]);
   const pace = paceOverride ?? (item ? paceFor(item.exerciseId, state.settings, state.repPace) : DEFAULT_PACE);
 
   const timing = phase === "rest" || (phase === "active" && usesTimer && (readyEndsAt > 0 || timerStart > 0));
@@ -408,8 +427,7 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
   const durationSec = Math.round(workoutElapsed(Date.now()));
   const restLeftSec = (restHold ?? restEndsAt - now) / 1000;
 
-  function save() {
-    const log: WorkoutLog = {
+  const buildLog = (): WorkoutLog => ({
       id: uid(),
       date: new Date().toISOString(),
       programId: day ? pid : undefined,
@@ -425,21 +443,32 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
           ),
         }))
         .filter((e) => e.sets.length),
-    };
+  });
+
+  // XP and level preview for the summary screen.
+  const xpGain = phase === "summary" ? workoutXP(buildLog(), state) : 0;
+  const xpBefore = phase === "summary" ? totalXP(state) : 0;
+  const levelBefore = levelFor(xpBefore);
+  const levelAfter = levelFor(xpBefore + xpGain);
+  const leveledUp = levelAfter.level > levelBefore.level;
+
+  function save() {
+    const log = buildLog();
     const pending = getState().goals.filter((g) => !g.achievedAt);
     finished.current = true;
     setState((s) => {
       const logs = [log, ...s.logs];
       const goals = s.goals.map((g) => (!g.achievedAt && goalProgress(g, logs) >= g.target ? { ...g, achievedAt: Date.now() } : g));
       let active = s.active;
-      if (day && pid) {
+      // Custom routines don't replace the active challenge.
+      if (day && pid && program?.source !== "custom") {
         if (!active || active.programId !== pid) active = { programId: pid, completedDayIds: [], startedAt: Date.now() };
         if (!active.completedDayIds.includes(day.id)) active = { ...active, completedDayIds: [...active.completedDayIds, day.id] };
       }
       return { ...s, logs, goals, active, inProgress: undefined };
     });
     const achieved = getState().goals.filter((g) => g.achievedAt && pending.some((p) => p.id === g.id));
-    if (achieved.length) {
+    if (achieved.length || leveledUp) {
       setNewGoals(achieved.map((g) => `${g.target} ${findExercise(g.exerciseId)?.name ?? ""}`));
       setCelebrate(true);
       feedback.celebrate();
@@ -527,6 +556,11 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
                     <span className="small muted">
                       Exercise {pos.i + 1} of {items.length} · Set {pos.s + 1} of {item.sets.length}
                     </span>
+                    {coachTip && phase === "active" && (
+                      <span className="small" style={{ color: "var(--accent)", fontWeight: 650 }}>
+                        🧠 {coachTip}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="set-chips">
@@ -701,6 +735,22 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
                 </div>
                 <h1 style={{ fontSize: 30, fontWeight: 900 }}>Workout complete!</h1>
                 <p className="muted">{day?.title ?? title}</p>
+              </div>
+              <div className="card col xp-card" style={{ gap: 8 }}>
+                <div className="row between">
+                  <span style={{ fontWeight: 900, fontSize: 22 }} className="num">
+                    +{xpGain} XP
+                  </span>
+                  <span className="chip accent">
+                    Lv {levelAfter.level} · {levelAfter.title}
+                  </span>
+                </div>
+                <div className="bar">
+                  <div style={{ width: `${Math.round(levelAfter.progress * 100)}%` }} />
+                </div>
+                <span className="small muted">
+                  {leveledUp ? `🎉 Level up! You reached level ${levelAfter.level}.` : `${Math.round(levelAfter.needed - levelAfter.into)} XP to level ${levelAfter.level + 1}`}
+                </span>
               </div>
               <div className="grid-3">
                 <div className="stat">

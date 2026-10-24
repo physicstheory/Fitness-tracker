@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronRight, Play, RotateCcw, Sparkles, Trash2, Plus } from "lucide-react";
+import { BookOpen, Check, ChevronRight, FileDown, Hammer, Play, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { AIBadge, Overlay, Sheet, setLabel } from "../components/ui";
 import { allPrograms, findExercise, findProgram, missingEquipment, setState, useAppState } from "../store";
 import { equipmentName } from "../data/equipment";
@@ -11,35 +11,73 @@ export function Programs() {
   const nav = useNav();
   const programs = allPrograms(state);
   const active = findProgram(state.active?.programId, state);
-  const mine = programs.filter((p) => p.source !== "builtin");
+  const routines = programs.filter((p) => p.source === "custom");
+  const mine = programs.filter((p) => p.source === "ai-import" || p.source === "ai-goal");
   const builtin = programs.filter((p) => p.source === "builtin");
+
+  const actions = [
+    { label: "Generate", hint: "Coach builds one for you", icon: <Sparkles color="#fff" size={22} />, bg: "var(--grad)", go: () => nav.push({ name: "generate" }) },
+    { label: "Build", hint: "Pick your own exercises", icon: <Hammer color="#fff" size={22} />, bg: "linear-gradient(135deg, #2fb67c, #14b8a6)", go: () => nav.push({ name: "builder" }) },
+    { label: "Import", hint: "Convert a plan with Claude", icon: <FileDown color="#fff" size={22} />, bg: "linear-gradient(135deg, var(--violet), var(--blue))", go: () => nav.push({ name: "import" }) },
+    { label: "Library", hint: "120+ exercises", icon: <BookOpen color="#fff" size={22} />, bg: "linear-gradient(135deg, #ff9f1c, #e83f8b)", go: () => nav.push({ name: "library" }) },
+  ];
 
   return (
     <div className="screen">
       <div className="screen-header">
-        <h1>Programs</h1>
-        <button className="btn sm primary" onClick={() => nav.push({ name: "import" })}>
-          <Plus size={15} /> Add
-        </button>
+        <h1>Workouts</h1>
+      </div>
+
+      <div className="grid-2">
+        {actions.map((a) => (
+          <button key={a.label} className="card tap col action-tile" onClick={a.go}>
+            <span className="emoji-badge" style={{ background: a.bg }}>
+              {a.icon}
+            </span>
+            <span style={{ fontWeight: 800, fontSize: 16 }}>{a.label}</span>
+            <span className="small muted">{a.hint}</span>
+          </button>
+        ))}
       </div>
 
       {active && state.active && (
         <>
-          <span className="eyebrow">Active challenge</span>
+          <span className="eyebrow">Active program</span>
           <ProgramCard program={active} progress={state.active.completedDayIds.length / active.days.length} onOpen={() => nav.push({ name: "program", id: active.id })} />
         </>
       )}
 
-      <button className="card tap row" onClick={() => nav.push({ name: "import" })} style={{ borderStyle: "dashed", boxShadow: "none" }}>
-        <div className="emoji-badge" style={{ background: "linear-gradient(135deg, var(--violet), var(--blue))" }}>
-          <Sparkles color="#fff" size={22} />
+      <div className="section-title">
+        <h2>My workouts</h2>
+        <button className="small muted" style={{ fontWeight: 650 }} onClick={() => nav.push({ name: "builder" })}>
+          + New
+        </button>
+      </div>
+      {routines.length ? (
+        <div className="card flat list" style={{ padding: "4px 16px" }}>
+          {routines.map((r) => {
+            const its = r.days[0]?.items ?? [];
+            return (
+              <div key={r.id} className="list-item">
+                <span className="emoji-badge" style={{ background: r.color, color: "#fff", fontWeight: 900 }}>
+                  {r.name.slice(0, 1).toUpperCase()}
+                </span>
+                <button className="grow" style={{ minWidth: 0, textAlign: "left" }} onClick={() => nav.push({ name: "builder", id: r.id })}>
+                  <div className="ellipsis" style={{ fontWeight: 750 }}>
+                    {r.name}
+                  </div>
+                  <div className="small muted ellipsis">{its.map((it) => findExercise(it.exerciseId, state)?.name).filter(Boolean).join(" · ")}</div>
+                </button>
+                <button className="icon-btn" style={{ background: "var(--accent)", borderColor: "var(--accent)" }} onClick={() => nav.push({ name: "workout", programId: r.id, dayId: r.days[0].id })} aria-label={`Start ${r.name}`}>
+                  <Play size={16} fill="#fff" color="#fff" />
+                </button>
+              </div>
+            );
+          })}
         </div>
-        <div className="grow">
-          <div style={{ fontWeight: 750 }}>Add a program with Claude</div>
-          <div className="small muted">Claude converts your program file in the Claude app, then you paste it here. No API key needed.</div>
-        </div>
-        <ChevronRight className="faint" />
-      </button>
+      ) : (
+        <p className="small muted">Save workouts you build or generate and they'll appear here for one-tap starts.</p>
+      )}
 
       {mine.length > 0 && (
         <>
@@ -53,7 +91,7 @@ export function Programs() {
       )}
 
       <div className="section-title">
-        <h2>Challenges</h2>
+        <h2>Programs & challenges</h2>
       </div>
       {builtin.map((p) => (
         <ProgramCard key={p.id} program={p} onOpen={() => nav.push({ name: "program", id: p.id })} />

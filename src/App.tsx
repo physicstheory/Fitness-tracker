@@ -10,10 +10,11 @@ import { Workout } from "./screens/Workout";
 import { Import } from "./screens/Import";
 import { Settings } from "./screens/Settings";
 import { ExerciseDetail, Library } from "./screens/Exercises";
+import { Builder, Generator } from "./screens/Builder";
 
 const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
   { id: "today", label: "Today", icon: Home },
-  { id: "programs", label: "Programs", icon: Dumbbell },
+  { id: "programs", label: "Workouts", icon: Dumbbell },
   { id: "goals", label: "Goals", icon: Target },
   { id: "progress", label: "Progress", icon: BarChart3 },
   { id: "coach", label: "Coach", icon: MessageCircle },
@@ -24,13 +25,17 @@ function RouteView({ route }: { route: Route }) {
     case "program":
       return <ProgramDetail id={route.id} />;
     case "workout":
-      return <Workout programId={route.programId} dayId={route.dayId} exerciseId={route.exerciseId} resume={route.resume} />;
+      return <Workout programId={route.programId} dayId={route.dayId} exerciseId={route.exerciseId} resume={route.resume} items={route.items} title={route.title} />;
     case "import":
       return <Import pasteOnly={route.pasteOnly} />;
     case "exercise":
       return <ExerciseDetail id={route.id} />;
     case "library":
       return <Library />;
+    case "generate":
+      return <Generator focus={route.focus} />;
+    case "builder":
+      return <Builder id={route.id} items={route.items} title={route.title} />;
     case "settings":
       return <Settings notice={route.notice} />;
   }

@@ -42,9 +42,10 @@ const BACK: Shape[] = [
   { m: "calves", d: "M92 318 Q100 314 102 324 Q104 344 98 362 Q94 368 92 360 Q90 338 92 318 Z" },
 ];
 
-function Body({ shapes, primary, secondary, label }: { shapes: Shape[]; primary: Set<MuscleId>; secondary: Set<MuscleId>; label: string }) {
+function Body({ shapes, primary, secondary, label, colors }: { shapes: Shape[]; primary: Set<MuscleId>; secondary: Set<MuscleId>; label: string; colors?: Partial<Record<MuscleId, string>> }) {
   const half = (key: string) =>
     shapes.map((s, i) => {
+      if (colors) return <path key={`${key}${i}`} d={s.d} className="mm-muscle" style={{ fill: colors[s.m] ?? "var(--muscle)", transition: "fill .4s" }} />;
       const cls = primary.has(s.m) ? "mm-primary" : secondary.has(s.m) ? "mm-secondary" : "mm-muscle";
       return <path key={`${key}${i}`} d={s.d} className={cls} style={{ animationDelay: `${(i % 6) * 0.08}s` }} />;
     });
@@ -63,16 +64,29 @@ function Body({ shapes, primary, secondary, label }: { shapes: Shape[]; primary:
 }
 
 /** Front and back body silhouettes; worked muscles glow orange and pulse (contract / relax). */
-export function MuscleMap({ primary, secondary, children }: { primary: MuscleId[]; secondary: MuscleId[]; children?: ReactNode }) {
+export function MuscleMap({
+  primary,
+  secondary,
+  children,
+  colors,
+  hideChips,
+}: {
+  primary: MuscleId[];
+  secondary: MuscleId[];
+  children?: ReactNode;
+  /** Static per-muscle colours (ranks, recovery) instead of the pulsing highlight. */
+  colors?: Partial<Record<MuscleId, string>>;
+  hideChips?: boolean;
+}) {
   const p = new Set(primary);
   const s = new Set(secondary);
   return (
     <div className="mm">
       <div className="mm-bodies">
-        <Body shapes={FRONT} primary={p} secondary={s} label="Front" />
-        <Body shapes={BACK} primary={p} secondary={s} label="Back" />
+        <Body shapes={FRONT} primary={p} secondary={s} label="Front" colors={colors} />
+        <Body shapes={BACK} primary={p} secondary={s} label="Back" colors={colors} />
       </div>
-      {(primary.length > 0 || secondary.length > 0) && (
+      {!hideChips && (primary.length > 0 || secondary.length > 0) && (
         <div className="chips" style={{ justifyContent: "center" }}>
           {primary.map((m) => (
             <span key={m} className="chip mm-chip-primary">

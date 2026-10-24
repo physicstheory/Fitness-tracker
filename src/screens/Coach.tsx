@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { CoachInsights } from "./CoachInsights";
 import { ClipboardCopy, ExternalLink, RotateCcw, Send, Sparkles } from "lucide-react";
 import { AIBadge } from "../components/ui";
 import { coachChat } from "../lib/api";
@@ -17,11 +18,23 @@ const SUGGESTIONS = [
 
 export function Coach() {
   const aiAvailable = useAIAvailable();
-  return aiAvailable ? <InAppCoach /> : <ClaudeAppCoach />;
+  const [view, setView] = useState<"insights" | "ask">("insights");
+  const tabs = (
+    <div className="seg">
+      <button className={view === "insights" ? "on" : ""} onClick={() => setView("insights")}>
+        Insights
+      </button>
+      <button className={view === "ask" ? "on" : ""} onClick={() => setView("ask")}>
+        Ask coach
+      </button>
+    </div>
+  );
+  if (view === "insights") return <CoachInsights tabs={tabs} onAsk={() => setView("ask")} />;
+  return aiAvailable ? <InAppCoach tabs={tabs} /> : <ClaudeAppCoach tabs={tabs} />;
 }
 
 /** Without an API key: questions open in the Claude app with the user's training data attached. */
-function ClaudeAppCoach() {
+function ClaudeAppCoach({ tabs }: { tabs: ReactNode }) {
   const state = useAppState();
   const [input, setInput] = useState("");
   const [note, setNote] = useState("");
@@ -54,6 +67,7 @@ function ClaudeAppCoach() {
           <AIBadge label="POWERED BY YOUR CLAUDE APP" />
         </div>
       </div>
+      {tabs}
 
       <div className="card col" style={{ gap: 8 }}>
         <Sparkles color="var(--violet)" />
@@ -109,7 +123,7 @@ function ClaudeAppCoach() {
 }
 
 /** With an API key on the server: chat right inside the app. */
-function InAppCoach() {
+function InAppCoach({ tabs }: { tabs: ReactNode }) {
   const state = useAppState();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -152,6 +166,7 @@ function InAppCoach() {
           </button>
         )}
       </div>
+      {tabs}
 
       {messages.length === 0 && (
         <div className="col" style={{ gap: 10 }}>

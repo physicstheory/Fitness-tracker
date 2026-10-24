@@ -5,6 +5,9 @@ import { addDays, bestSet, bestWeight, dailyTotals, fmtDuration, lifetimeTotal, 
 import { allExercises, findExercise, setState, useAppState } from "../store";
 import { useNav } from "../nav";
 import type { WorkoutLog } from "../types";
+import { MuscleMap } from "../components/MuscleMap";
+import { TIERS, levelFor, muscleRanks, totalXP } from "../lib/progression";
+import { MUSCLE_NAMES, type MuscleId } from "../lib/muscles";
 
 const RANGES = [
   { days: 7, label: "7D" },
@@ -35,6 +38,9 @@ export function Progress() {
       <div className="screen-header">
         <h1>Progress</h1>
       </div>
+
+      <LevelCard />
+      <MuscleRanks />
 
       <div className="grid-2">
         <div className="stat">
@@ -210,3 +216,72 @@ export function Progress() {
   );
 }
 
+
+function LevelCard() {
+  const state = useAppState();
+  const xp = totalXP(state);
+  const lv = levelFor(xp);
+  return (
+    <div className="card hero col" style={{ gap: 10 }}>
+      <div className="row between" style={{ position: "relative", zIndex: 1 }}>
+        <div className="col" style={{ gap: 0 }}>
+          <span className="eyebrow" style={{ color: "rgba(255,255,255,.85)" }}>
+            Level {lv.level}
+          </span>
+          <h2 style={{ fontSize: 28, fontWeight: 900 }}>{lv.title}</h2>
+        </div>
+        <span className="num" style={{ fontSize: 26, fontWeight: 900 }}>
+          {xp.toLocaleString()} XP
+        </span>
+      </div>
+      <div className="bar" style={{ background: "rgba(255,255,255,.25)", position: "relative", zIndex: 1 }}>
+        <div style={{ width: `${Math.round(lv.progress * 100)}%`, background: "#fff" }} />
+      </div>
+      <span className="small muted" style={{ position: "relative", zIndex: 1 }}>
+        {Math.round(lv.needed - lv.into)} XP to level {lv.level + 1}. Every set earns XP; heavier and longer sets earn more.
+      </span>
+    </div>
+  );
+}
+
+function MuscleRanks() {
+  const state = useAppState();
+  const ranks = muscleRanks(state);
+  const colors: Partial<Record<MuscleId, string>> = {};
+  (Object.keys(MUSCLE_NAMES) as MuscleId[]).forEach((m) => (colors[m] = ranks[m]?.tier.color ?? "var(--muscle)"));
+  const list = (Object.keys(MUSCLE_NAMES) as MuscleId[]).map((m) => ({ m, r: ranks[m] })).sort((a, b) => (b.r?.score ?? 0) - (a.r?.score ?? 0));
+  return (
+    <div className="card col" style={{ gap: 12 }}>
+      <div className="row between">
+        <h2 style={{ fontSize: 18, fontWeight: 800 }}>Muscle ranks</h2>
+        <span className="small faint">last 30 days</span>
+      </div>
+      <MuscleMap primary={[]} secondary={[]} colors={colors} hideChips />
+      <div className="rank-grid">
+        {list.map(({ m, r }) => {
+          const tier = r?.tier ?? TIERS[0];
+          const next = TIERS[TIERS.indexOf(tier) + 1];
+          return (
+            <div key={m} className="rank-cell">
+              <span style={{ fontSize: 18 }}>{tier.emoji}</span>
+              <div className="col grow" style={{ gap: 2, minWidth: 0 }}>
+                <span className="small ellipsis" style={{ fontWeight: 750 }}>
+                  {MUSCLE_NAMES[m]}
+                </span>
+                <span className="faint ellipsis" style={{ fontSize: 11, fontWeight: 650 }}>
+                  {tier.name}
+                </span>
+                {next && (
+                  <div className="bar" style={{ height: 4 }}>
+                    <div style={{ width: `${Math.min(100, (((r?.score ?? 0) - tier.min) / (next.min - tier.min)) * 100)}%`, background: next.color }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <span className="small faint">Train a muscle more (more sets, reps or weight) to climb from Bronze to Legend.</span>
+    </div>
+  );
+}

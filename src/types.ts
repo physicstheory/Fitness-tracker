@@ -51,7 +51,7 @@ export interface Program {
   daysPerWeek: number;
   days: ProgramDay[];
   notes: string[];
-  source: "builtin" | "ai-import" | "ai-goal";
+  source: "builtin" | "ai-import" | "ai-goal" | "custom";
   color: string;
   createdAt: number;
 }
