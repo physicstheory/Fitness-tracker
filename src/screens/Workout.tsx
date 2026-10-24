@@ -12,7 +12,9 @@ import { equipmentName } from "../data/equipment";
 import { canDo, findExercise, findProgram, getState, setState, uid, useAppState } from "../store";
 import { useNav } from "../nav";
 import { useNow, useWakeLock } from "../hooks";
-import { cancelRestDone, prepareNotifications, scheduleRestDone } from "../lib/native";
+import { cancelRestDone, isNative, prepareNotifications, scheduleRestDone } from "../lib/native";
+import { pollEvents, pushPlan } from "../lib/watch";
+import { apiBase } from "../lib/api";
 import type { Exercise, ProgramItem, SavedWorkout, Settings, WorkoutLog } from "../types";
 
 type Phase = "intro" | "active" | "rest" | "summary";
@@ -250,6 +252,49 @@ export function Workout({
     } else void cancelRestDone();
   }, [phase, restEndsAt, restHold, pausedAt, exercise, pos.s]);
   useEffect(() => () => void cancelRestDone(), []);
+
+  // ----- Garmin watch link: send the plan, take reps and finished sets from the watch -----
+  const watchLinked = Boolean(state.settings.watchCode) && (Boolean(apiBase()) || !isNative);
+  const [watchAlive, setWatchAlive] = useState(false);
+  const live = useRef({ pos, phase, usesTimer, completeSet });
+  live.current = { pos, phase, usesTimer, completeSet };
+  useEffect(() => {
+    if (!watchLinked || phase === "intro") return;
+    void pushPlan({ title, items, pos, phase, restLeft: phase === "rest" ? Math.max(0, Math.round((restHold ?? restEndsAt - Date.now()) / 1000)) : 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchLinked, phase, pos.i, pos.s, items, restHold]);
+  useEffect(() => {
+    if (!watchLinked || (phase !== "active" && phase !== "rest")) return;
+    let after = -1;
+    let stopped = false;
+    const tick = async () => {
+      try {
+        const r = await pollEvents(after);
+        if (stopped) return;
+        setWatchAlive(Date.now() - r.watchSeen < 10000);
+        if (after >= 0) {
+          for (const ev of r.events) {
+            const cur = live.current;
+            if (ev.i !== cur.pos.i || ev.s !== cur.pos.s) continue;
+            if (ev.type === "reps" && cur.phase === "active" && !cur.usesTimer) setCount(ev.reps);
+            if (ev.type === "set") {
+              if (cur.phase === "rest") setPhase("active");
+              cur.completeSet(ev.reps);
+            }
+          }
+        }
+        after = r.last;
+      } catch {
+        if (!stopped) setWatchAlive(false);
+      }
+    };
+    void tick();
+    const t = setInterval(tick, 1000);
+    return () => {
+      stopped = true;
+      clearInterval(t);
+    };
+  }, [watchLinked, phase]);
 
   // Keyboard: space/enter counts a rep on desktop.
   useEffect(() => {
@@ -508,7 +553,16 @@ export function Workout({
               <span className="eyebrow ellipsis" style={{ maxWidth: "100%" }}>
                 {program?.name ?? "Quick workout"}
               </span>
-              {startedAt > 0 && phase !== "summary" && <span className="num small muted">{fmtTime(workoutElapsed(now))}</span>}
+              {startedAt > 0 && phase !== "summary" && (
+                <span className="num small muted">
+                  {fmtTime(workoutElapsed(now))}
+                  {watchLinked && (
+                    <span style={{ marginLeft: 8, color: watchAlive ? "var(--good)" : "var(--faint)", fontWeight: 800 }} title={watchAlive ? "Watch connected" : "Waiting for watch"}>
+                      ⌚{watchAlive ? " live" : ""}
+                    </span>
+                  )}
+                </span>
+              )}
             </div>
             {hasMusic && (
               <button

@@ -83,10 +83,27 @@ Pasting a playlist link works with no setup. For the full connection:
 
 While a Spotify app is in development mode, only accounts you add under **User Management** in the Spotify dashboard can connect.
 
+## Garmin watch app (optional)
+
+`garmin/` holds a Connect IQ watch app that counts reps with the watch's accelerometer and syncs them to the workout running on your phone. The watch reaches the internet through the Garmin Connect app on your phone, and the RepRise server relays between the two (`/api/watch/*`).
+
+A phone app can't install apps on a Garmin watch, so this is a one-time install from a computer:
+
+1. In `garmin/source/Config.mc`, set `SERVER_URL` to your server's address, for example `https://your-app.onrender.com`.
+2. Install VS Code, the **Monkey C** extension and the Connect IQ SDK (the SDK Manager needs a free Garmin developer account). Generate a developer key when the extension asks.
+3. Open the `garmin/` folder, run **Monkey C: Edit Products** to tick your watch if it isn't listed, then **Monkey C: Build for Device**.
+4. Plug the watch in over USB and copy the `.prg` file into `GARMIN/APPS`. Unplug it and RepRise shows up in the watch's apps list.
+5. Open RepRise on the watch. It shows a 4-digit code. On your phone, go to **Settings → Garmin watch**, enter the code and tap **Test connection**.
+
+During a workout the watch shows the current exercise, set and target. Press START to begin a set, move and it counts reps (UP/DOWN or a tap corrects the count), then press START again to finish the set. The phone follows along and starts the rest timer. Keep Garmin Connect running in the background on your phone.
+
+The watch app hasn't been compiled or tested on a real watch yet, so expect to tune the rep detection (`RepCounter.mc`). You can also publish it to the Connect IQ Store instead of sideloading it.
+
 ## Project layout
 
 ```
-server/        Express API + Claude integration
+server/        Express API, Claude integration, Garmin watch relay
+garmin/        Connect IQ watch app (Monkey C)
 src/screens/   Today, Programs, Workout player, Import, Goals, Progress, Coach, Settings
 src/components UI primitives, AI exercise guide
 src/data/      Built-in exercises and challenges

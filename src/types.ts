@@ -126,6 +126,8 @@ export interface Profile {
   equipment: string;
   /** Structured equipment the user owns (ids from data/equipment). */
   equipmentList: string[];
+  /** What the user trains for; shapes sets, reps and rest. */
+  trainingGoal?: "general" | "aesthetics" | "strength" | "endurance";
 }
 
 export interface Settings {
@@ -147,6 +149,8 @@ export interface Settings {
   units: "kg" | "lb";
   /** AI server for the iOS app, e.g. https://your-app.onrender.com (optional). */
   serverUrl?: string;
+  /** Pairing code shown on the RepRise Garmin watch app. */
+  watchCode?: string;
 }
 
 /** A workout that was paused and saved to finish later. */

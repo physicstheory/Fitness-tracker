@@ -2,7 +2,9 @@ import { useRef, useState } from "react";
 import { ChevronRight, Download, Dumbbell, Upload } from "lucide-react";
 import { Overlay, Sheet, Switch } from "../components/ui";
 import { MusicSettings } from "../components/Music";
+import { WatchSettings } from "../components/WatchSettings";
 import { EquipmentPicker } from "../components/EquipmentPicker";
+import { GoalPicker } from "../components/ExerciseInfo";
 import { isNative } from "../lib/native";
 import { findExercise, getState, replaceState, resetState, setState, useAppState } from "../store";
 import { useNav } from "../nav";
@@ -72,6 +74,12 @@ export function Settings({ notice }: { notice?: string }) {
           Injuries or limitations
           <textarea className="input" value={state.profile.limitations} onChange={(e) => setProfile({ limitations: e.target.value })} placeholder="e.g. sore left shoulder, bad knees" />
         </label>
+        <div className="col" style={{ gap: 6 }}>
+          <span className="small muted" style={{ fontWeight: 650 }}>
+            Training goal
+          </span>
+          <GoalPicker />
+        </div>
         <div className="col" style={{ gap: 6 }}>
           <span className="small muted" style={{ fontWeight: 650 }}>
             Equipment available
@@ -176,6 +184,8 @@ export function Settings({ notice }: { notice?: string }) {
       </div>
 
       <MusicSettings notice={notice} />
+
+      <WatchSettings />
 
       <button className="card tap row" onClick={() => nav.push({ name: "library" })}>
         <span className="emoji-badge">

@@ -3,6 +3,9 @@ import { ArrowDown, ArrowUp, Minus, Play, Plus, Save, Shuffle, Sparkles, Trash2 
 import { Overlay } from "../components/ui";
 import { ExercisePicker } from "../components/ExercisePicker";
 import { MuscleMap } from "../components/MuscleMap";
+import { GoalPicker } from "../components/ExerciseInfo";
+import { schemeFor } from "../lib/exerciseMeta";
+import { lastWeight } from "../lib/stats";
 import { exerciseMuscles, type MuscleId } from "../lib/muscles";
 import { FOCI, generateWorkout, suggestedFocus, type Focus } from "../lib/coach";
 import { findExercise, findProgram, getState, saveRoutine, useAppState } from "../store";
@@ -105,7 +108,10 @@ export function Builder({ id, items: initialItems, title: initialTitle }: { id?:
       ...its,
       ...ids.map((eid) => {
         const ex = findExercise(eid, s)!;
-        return { exerciseId: eid, sets: [ex.type === "time" ? 30 : ex.weighted ? 8 : 10, ex.type === "time" ? 30 : ex.weighted ? 8 : 10, ex.type === "time" ? 30 : ex.weighted ? 8 : 10], restSec: ex.defaultRestSec, notes: "" };
+        // Default sets, reps and rest follow the training goal.
+        const sc = schemeFor(ex, s.profile.trainingGoal ?? "general", s.profile.level);
+        const w = ex.weighted ? lastWeight(s.logs, eid) : undefined;
+        return { exerciseId: eid, sets: Array(sc.sets).fill(sc.reps), restSec: sc.rest, notes: `${sc.range}${ex.type === "time" ? "" : " reps"} for your goal`, ...(w ? { weights: Array(sc.sets).fill(w) } : {}) };
       }),
     ]);
   }
@@ -119,6 +125,10 @@ export function Builder({ id, items: initialItems, title: initialTitle }: { id?:
   return (
     <Overlay title={existing ? "Edit workout" : "Build a workout"}>
       <input className="input" style={{ fontSize: 20, fontWeight: 800 }} placeholder="Workout name (e.g. Push Day)" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <div className="col" style={{ gap: 6 }}>
+        <span className="eyebrow">Training goal</span>
+        <GoalPicker />
+      </div>
       {items.length > 0 && (
         <div className="card flat" style={{ padding: 10 }}>
           <MuscleMap primary={cov.primary} secondary={cov.secondary} />
@@ -173,6 +183,10 @@ export function Generator({ focus: initialFocus }: { focus?: string }) {
           ))}
         </div>
         <span className="small faint">✨ = coach pick, based on which muscles are most recovered.</span>
+      </div>
+      <div className="col" style={{ gap: 8 }}>
+        <span className="eyebrow">Goal</span>
+        <GoalPicker />
       </div>
       <div className="col" style={{ gap: 8 }}>
         <span className="eyebrow">Time</span>

@@ -2,6 +2,7 @@ import { exerciseMuscles, MUSCLE_NAMES, type MuscleId } from "./muscles";
 import { dayKey, lastWeight, streak } from "./stats";
 import { allExercises, canDo, findExercise } from "../store";
 import type { AppState, Exercise, ProgramItem, SetLog } from "../types";
+import { GOALS, goalFit, schemeFor, type TrainingGoal } from "./exerciseMeta";
 
 // An offline coach: everything here is computed from the user's own logs, no AI needed.
 
@@ -212,8 +213,11 @@ export function generateWorkout(s: AppState, focus: Focus, minutes: number, seed
   let rnd = seed % 2147483647 || 1;
   const rand = () => ((rnd = (rnd * 16807) % 2147483647) - 1) / 2147483646;
   const level = s.profile.level;
-  const setsPer = level === "beginner" ? 3 : level === "intermediate" ? 3 : 4;
-  const count = Math.max(3, Math.min(9, Math.round(minutes / (level === "advanced" ? 8 : 7))));
+  const goal: TrainingGoal = s.profile.trainingGoal ?? "general";
+  const goalLabel = GOALS.find((g) => g.id === goal)?.label ?? "General";
+  // Strength sessions have fewer, longer exercises; endurance packs more in.
+  const perExercise = goal === "strength" ? 10 : goal === "endurance" ? 5.5 : level === "advanced" ? 8 : 7;
+  const count = Math.max(3, Math.min(10, Math.round(minutes / perExercise)));
   const f = FOCI.find((x) => x.id === focus)!;
   const available = allExercises(s).filter((e) => canDo(e, s));
   const trained = lastTrained(s);
@@ -231,7 +235,10 @@ export function generateWorkout(s: AppState, focus: Focus, minutes: number, seed
         // Prefer recovered muscles, compound lifts, and equipment the user went out of their way to tick.
         const recovery = primary.reduce((a, m) => a + Math.min(1, (trained[m] ?? 96) / 72), 0) / primary.length;
         const kit = (e.equipmentIds ?? []).length ? 0.4 : 0;
-        return { e, score: hits + support + recovery + (isCompound(e) ? 0.8 : 0) + kit + rand() * 0.9 };
+        const fit = goalFit(e);
+        const goalBonus = goal === "general" ? 0 : fit[goal] ? 1.2 : -1.5;
+        const compoundBonus = isCompound(e) ? (goal === "strength" ? 1.6 : goal === "endurance" ? 0.3 : 0.8) : 0;
+        return { e, score: hits + support + recovery + compoundBonus + kit + goalBonus + rand() * 0.9 };
       })
       .filter((x): x is { e: Exercise; score: number } => !!x);
   }
@@ -257,23 +264,14 @@ export function generateWorkout(s: AppState, focus: Focus, minutes: number, seed
 
   const items: ProgramItem[] = picked.map((e) => {
     const prog = progressionFor(s, e.id);
-    if (e.type === "time") {
-      const base = prog?.nextReps ?? (level === "beginner" ? 30 : level === "intermediate" ? 45 : 60);
-      return { exerciseId: e.id, sets: Array(focus === "cardio" ? 3 : setsPer).fill(base), restSec: focus === "cardio" ? 30 : e.defaultRestSec, notes: "" };
-    }
-    const hardBodyweight = /pull-?up|chin-?up|dip|pistol|nordic|pike|handstand|hanging|muscle-?up/i.test(e.name);
-    let reps = e.weighted
-      ? isCompound(e)
-        ? level === "advanced" ? 6 : 8
-        : 12
-      : hardBodyweight
-        ? level === "beginner" ? 4 : level === "intermediate" ? 6 : 10
-        : level === "beginner" ? 8 : level === "intermediate" ? 12 : 15;
-    if (focus === "cardio") reps = 15;
-    if (!e.weighted && prog?.nextReps) reps = Math.max(reps, prog.nextReps);
+    const sc = schemeFor(e, focus === "cardio" ? "endurance" : goal, level);
+    let reps = sc.reps;
+    // Respect the coach's progression when it asks for more than the goal default.
+    if (prog?.nextReps && (!e.weighted || e.type === "time")) reps = Math.max(reps, prog.nextReps);
     const weight = e.weighted ? prog?.nextWeight ?? lastWeight(s.logs, e.id) : undefined;
-    const rest = focus === "cardio" ? 30 : e.weighted && isCompound(e) ? Math.max(90, e.defaultRestSec) : e.defaultRestSec;
-    return { exerciseId: e.id, sets: Array(setsPer).fill(reps), restSec: rest, notes: prog?.advice ?? "", ...(weight ? { weights: Array(setsPer).fill(weight) } : {}) };
+    const sets = level === "beginner" ? Math.min(sc.sets, 3) : sc.sets;
+    const note = [`${goalLabel}: ${sc.range}${e.type === "time" ? "" : " reps"}, ${sc.rest}s rest`, prog?.advice].filter(Boolean).join(" · ");
+    return { exerciseId: e.id, sets: Array(sets).fill(reps), restSec: sc.rest, notes: note, ...(weight ? { weights: Array(sets).fill(weight) } : {}) };
   });
 
   return { title: `${f.label} · ${minutes} min`, focus, items, minutes };

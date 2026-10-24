@@ -5,6 +5,8 @@ import { handleRedirect } from "./lib/spotify";
 import { applyTheme } from "./lib/theme";
 import { isNative } from "./lib/native";
 import { getState, subscribe } from "./store";
+import "@fontsource-variable/unbounded";
+import "@fontsource-variable/manrope";
 import "./styles.css";
 
 // Light / dark theme follows the setting, and the system when set to Auto.

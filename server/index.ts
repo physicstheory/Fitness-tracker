@@ -6,6 +6,7 @@ import express from "express";
 import type Anthropic from "@anthropic-ai/sdk";
 import { aiConfigured, aiUsable, chat, describeError, structured } from "./ai.ts";
 import { GoalPlanSchema, InstructionsSchema } from "./schemas.ts";
+import { mountWatchRoutes } from "./watch.ts";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
@@ -39,6 +40,8 @@ const requireAI: express.RequestHandler = (_req, res, next) => {
   }
   next();
 };
+
+mountWatchRoutes(app);
 
 app.get("/api/health", async (_req, res) => {
   res.json({ ok: true, ai: await aiUsable() });

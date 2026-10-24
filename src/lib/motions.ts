@@ -40,6 +40,8 @@ export interface Motion {
   props?: Prop[];
   /** Static holds just "breathe" between their keyframes. */
   hold?: boolean;
+  /** Drawn facing the other way (lying face up with the head on the right, or face down with the head on the left). */
+  mirrored?: boolean;
   cue: string;
 }
 
@@ -232,6 +234,7 @@ export const MOTIONS: Record<string, Motion> = {
   },
   bench: {
     id: "bench",
+    mirrored: true,
     phases: ["Lower", "Press"],
     label: "Bench press",
     duration: 2.6,
@@ -402,6 +405,7 @@ export const MOTIONS: Record<string, Motion> = {
   },
   fly: {
     id: "fly",
+    mirrored: true,
     label: "Chest fly",
     duration: 2.8,
     elbow: 1,
@@ -416,6 +420,7 @@ export const MOTIONS: Record<string, Motion> = {
   },
   skull: {
     id: "skull",
+    mirrored: true,
     label: "Skull crusher",
     duration: 2.4,
     elbow: -1,
@@ -430,6 +435,7 @@ export const MOTIONS: Record<string, Motion> = {
   },
   pullover: {
     id: "pullover",
+    mirrored: true,
     label: "Pullover",
     duration: 3,
     elbow: 1,
@@ -444,6 +450,7 @@ export const MOTIONS: Record<string, Motion> = {
   },
   legcurl: {
     id: "legcurl",
+    mirrored: true,
     label: "Leg curl",
     duration: 2.4,
     elbow: 1,
@@ -514,6 +521,7 @@ export const MOTIONS: Record<string, Motion> = {
   },
   superman: {
     id: "superman",
+    mirrored: true,
     label: "Superman",
     duration: 2.4,
     elbow: 1,
@@ -648,6 +656,7 @@ export const MOTIONS: Record<string, Motion> = {
   },
   invrow: {
     id: "invrow",
+    mirrored: true,
     label: "Inverted row",
     duration: 2.4,
     elbow: 1,

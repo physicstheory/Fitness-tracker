@@ -1,4 +1,8 @@
-import { ChevronRight, Play } from "lucide-react";
+import { useState } from "react";
+import { Play } from "lucide-react";
+import { ExercisePreview, IntensityMeter, MusclesLine } from "../components/ExerciseInfo";
+import { intensityOf } from "../lib/exerciseMeta";
+import type { Exercise } from "../types";
 import { BarChart, Overlay } from "../components/ui";
 import { ExerciseGuide } from "../components/ExerciseGuide";
 import { bestSet, bestWeight, dailyTotals, lifetimeTotal } from "../lib/stats";
@@ -9,16 +13,18 @@ import { useNav } from "../nav";
 export function Library() {
   const nav = useNav();
   const f = useExerciseFilter();
+  const [preview, setPreview] = useState<Exercise | null>(null);
   return (
     <Overlay title="Exercise library">
       <FilterBar f={f} />
       <span className="small faint">{f.list.length} exercises</span>
       <div className="card flat list" style={{ padding: "4px 16px" }}>
         {f.list.map((e) => (
-          <ExerciseRow key={e.id} e={e} onClick={() => nav.push({ name: "exercise", id: e.id })} right={<ChevronRight size={18} className="faint" />} />
+          <ExerciseRow key={e.id} e={e} onClick={() => nav.push({ name: "exercise", id: e.id })} onPreview={() => setPreview(e)} />
         ))}
         {!f.list.length && <p className="small muted" style={{ textAlign: "center", padding: 16 }}>No matches. Turn off "My equipment" to see everything.</p>}
       </div>
+      <ExercisePreview e={preview} onClose={() => setPreview(null)} />
     </Overlay>
   );
 }
@@ -51,6 +57,10 @@ export function ExerciseDetail({ id }: { id: string }) {
             {ex.equipment && ex.equipment !== "None" && <span className="chip">{ex.equipment}</span>}
           </div>
         </div>
+      </div>
+      <div className="card flat col" style={{ gap: 6, padding: 12 }}>
+        <IntensityMeter level={intensityOf(ex)} showLabel />
+        <MusclesLine e={ex} />
       </div>
       <div className="grid-3">
         <div className="stat">

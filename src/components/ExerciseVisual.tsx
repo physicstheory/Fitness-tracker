@@ -11,6 +11,7 @@ export type VisualTab = "muscles" | "form";
 /** Muscle map (orange, pulsing) and a form demo for one exercise, switchable with tabs. */
 export function ExerciseVisual({ exercise, tab: initialTab = "muscles", compact = false }: { exercise: Exercise; tab?: VisualTab; compact?: boolean }) {
   const [tab, setTab] = useState<VisualTab>(initialTab);
+  const [showWorking, setShowWorking] = useState(true);
   const { primary, secondary } = exerciseMuscles(exercise.muscleGroups, exercise.primaryCount);
   const motion = motionFor(exercise.name, exercise.motion);
 
@@ -35,7 +36,10 @@ export function ExerciseVisual({ exercise, tab: initialTab = "muscles", compact 
           )
         ) : motion ? (
           <div className="col" style={{ gap: 8, alignItems: "center" }}>
-            <FormAnimation motion={motion} size={compact ? 240 : 300} />
+            <FormAnimation motion={motion} size={compact ? 240 : 300} muscles={showWorking ? { primary, secondary } : undefined} />
+            <button className={`chip ${showWorking ? "accent" : ""}`} style={{ padding: "6px 12px" }} onClick={() => setShowWorking((v) => !v)}>
+              {showWorking ? "✓ Showing muscles working" : "Show muscles working"}
+            </button>
             <p className="small muted" style={{ textAlign: "center" }}>
               {motion.cue}
             </p>

@@ -11,9 +11,6 @@
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <title>RepRise</title>
     <script>
       // Apply the saved Light/Dark choice before anything paints, so there's no flash.
@@ -35,7 +32,7 @@
         gap: 18px;
         background: radial-gradient(circle at 50% 42%, #2a160f 0%, #0d0f14 62%);
         color: #f4f6fa;
-        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        font-family: "Manrope Variable", system-ui, -apple-system, sans-serif;
         transition: opacity 0.45s ease, transform 0.45s ease;
       }
       :root[data-theme="light"] #splash {
@@ -64,18 +61,22 @@
         justify-content: center;
         animation: splash-pop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
       }
-      #splash .logo path {
-        stroke-dasharray: 340;
-        stroke-dashoffset: 340;
-        animation: splash-draw 0.8s 0.35s ease-out forwards;
+      #splash .flex {
+        font-size: 66px;
+        line-height: 1;
+        display: inline-block;
+        transform-origin: 30% 80%;
+        animation: splash-flex 0.9s 0.45s ease-in-out both;
       }
-      #splash .logo path + path {
-        animation-delay: 0.8s;
-        animation-duration: 0.4s;
+      @keyframes splash-flex {
+        0%, 100% { transform: rotate(0) scale(1); }
+        35% { transform: rotate(-14deg) scale(1.12); }
+        65% { transform: rotate(6deg) scale(1.05); }
       }
       #splash .name {
-        font-size: 30px;
-        font-weight: 900;
+        font-family: "Unbounded Variable", "Manrope Variable", system-ui, sans-serif;
+        font-size: 28px;
+        font-weight: 700;
         letter-spacing: -0.03em;
         animation: splash-up 0.5s 0.55s ease both;
       }
@@ -109,7 +110,7 @@
         to { transform: scale(2.4); opacity: 0; }
       }
       @media (prefers-reduced-motion: reduce) {
-        #splash *, #splash .logo path { animation: none !important; stroke-dashoffset: 0; }
+        #splash * { animation: none !important; }
       }
     </style>
   </head>
@@ -118,10 +119,7 @@
       <div style="position: relative">
       <div class="pulse"></div>
       <div class="logo">
-        <svg viewBox="0 0 512 512" width="78" height="78">
-          <path d="M150 330 L220 250 L275 295 L362 190" fill="none" stroke="#fff" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M310 182 H370 V242" fill="none" stroke="#fff" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <span class="flex">💪</span>
       </div>
       </div>
       <div class="name">RepRise</div>

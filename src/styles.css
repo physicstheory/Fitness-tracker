@@ -1400,3 +1400,91 @@ textarea,
   height: 100%;
   background: var(--grad);
 }
+
+/* ---------- Typography & clean look ---------- */
+:root {
+  --font-body: "Manrope Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Unbounded Variable", "Manrope Variable", system-ui, sans-serif;
+  --radius: 22px;
+  --radius-sm: 14px;
+}
+body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  letter-spacing: -0.005em;
+}
+h1,
+h2,
+h3,
+.screen-header h1,
+.big-time,
+.tap-circle .count,
+.stat .value,
+.brand {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+.screen-header h1 {
+  font-size: clamp(22px, 6.4vw, 28px);
+  font-weight: 700;
+}
+h2 {
+  font-weight: 650;
+}
+.section-title h2 {
+  font-size: 16px;
+  font-weight: 650;
+}
+.stat .value {
+  font-size: 21px;
+  font-weight: 700;
+}
+.tap-circle .count {
+  font-weight: 800;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.11em;
+  font-weight: 800;
+}
+.btn {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+/* Flatter, calmer surfaces */
+.card {
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--line) 70%, transparent);
+}
+:root[data-theme="light"] .card {
+  box-shadow: 0 1px 2px rgba(20, 30, 50, 0.04), 0 6px 18px rgba(20, 30, 50, 0.05);
+}
+.stat {
+  border: 0;
+  background: var(--card-2);
+}
+.chip {
+  font-weight: 700;
+}
+.nav button {
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+}
+.screen {
+  gap: 18px;
+}
+.intensity {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+.intensity i {
+  width: 4px;
+  border-radius: 2px;
+  background: var(--card-2);
+}
+.intensity i.on {
+  background: var(--int-color, var(--accent));
+}
