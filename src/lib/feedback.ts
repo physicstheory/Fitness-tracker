@@ -1,4 +1,5 @@
 import { getState } from "../store";
+import { haptic, isNative } from "./native";
 
 let ctx: AudioContext | null = null;
 
@@ -27,8 +28,10 @@ function tone(freq: number, durationMs: number, delayMs = 0, volume = 0.25) {
   osc.stop(start + durationMs / 1000 + 0.05);
 }
 
-function vibrate(pattern: number | number[]) {
-  if (getState().settings.vibrate && "vibrate" in navigator) navigator.vibrate(pattern);
+function vibrate(pattern: number | number[], kind: "light" | "medium" | "success" = "light") {
+  if (!getState().settings.vibrate) return;
+  if (isNative) haptic[kind]();
+  else if ("vibrate" in navigator) navigator.vibrate(pattern);
 }
 
 export const feedback = {
@@ -42,10 +45,10 @@ export const feedback = {
   done() {
     tone(784, 160);
     tone(1046, 260, 170);
-    vibrate([120, 60, 120]);
+    vibrate([120, 60, 120], "success");
   },
   celebrate() {
     [523, 659, 784, 1046].forEach((f, i) => tone(f, 200, i * 120));
-    vibrate([80, 40, 80, 40, 200]);
+    vibrate([80, 40, 80, 40, 200], "success");
   },
 };

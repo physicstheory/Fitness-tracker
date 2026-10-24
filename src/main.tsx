@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { handleRedirect } from "./lib/spotify";
 import { applyTheme } from "./lib/theme";
+import { isNative } from "./lib/native";
 import { getState, subscribe } from "./store";
 import "./styles.css";
 
@@ -37,6 +38,6 @@ handleRedirect().then((notice) => {
   hideSplash();
 });
 
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
+if ("serviceWorker" in navigator && import.meta.env.PROD && !isNative) {
   window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
 }

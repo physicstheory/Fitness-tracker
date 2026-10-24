@@ -9,6 +9,17 @@ import { GoalPlanSchema, InstructionsSchema } from "./schemas.ts";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
+// The iOS app runs from capacitor://localhost, so allow cross-origin calls to the API (no cookies are used).
+app.use("/api", (req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
 
 function profileText(profile: unknown): string {
   if (!profile || typeof profile !== "object") return "No profile provided.";

@@ -145,6 +145,8 @@ export interface Settings {
   autoPace: "average" | "fixed";
   autoPaceSec: number;
   units: "kg" | "lb";
+  /** AI server for the iOS app, e.g. https://your-app.onrender.com (optional). */
+  serverUrl?: string;
 }
 
 /** A workout that was paused and saved to finish later. */

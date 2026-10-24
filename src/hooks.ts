@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { aiStatus } from "./lib/api";
+import { isNative, keepAwake } from "./lib/native";
 
 let cached: boolean | null = null;
 let pending: Promise<boolean> | null = null;
@@ -29,6 +30,10 @@ export function useAIAvailable(): boolean {
 /** Keeps the screen on during workouts where supported. */
 export function useWakeLock(active: boolean) {
   useEffect(() => {
+    if (isNative) {
+      void keepAwake(active);
+      return () => void keepAwake(false);
+    }
     if (!active || !("wakeLock" in navigator)) return;
     let lock: WakeLockSentinel | null = null;
     let cancelled = false;

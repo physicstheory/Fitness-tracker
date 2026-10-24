@@ -10,6 +10,7 @@ import { equipmentName } from "../data/equipment";
 import { canDo, findExercise, findProgram, getState, setState, uid, useAppState } from "../store";
 import { useNav } from "../nav";
 import { useNow, useWakeLock } from "../hooks";
+import { cancelRestDone, prepareNotifications, scheduleRestDone } from "../lib/native";
 import type { Exercise, ProgramItem, SavedWorkout, Settings, WorkoutLog } from "../types";
 
 type Phase = "intro" | "active" | "rest" | "summary";
@@ -223,6 +224,14 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
     }
   }, [now, phase, restEndsAt, restHold, readyEndsAt, timerStart, paused, target, usesTimer, isAuto, autoCount, completeSet, pausedAt]);
 
+  // Lock-screen notification for the end of rest (iOS app).
+  useEffect(() => {
+    if (phase === "rest" && restHold === null && pausedAt === null && exercise) {
+      void scheduleRestDone(restEndsAt, `Next up: ${exercise.name} · set ${pos.s + 1}`);
+    } else void cancelRestDone();
+  }, [phase, restEndsAt, restHold, pausedAt, exercise, pos.s]);
+  useEffect(() => () => void cancelRestDone(), []);
+
   // Keyboard: space/enter counts a rep on desktop.
   useEffect(() => {
     if (phase !== "active" || usesTimer || pausedAt !== null) return;
@@ -309,6 +318,7 @@ export function Workout({ programId, dayId, exerciseId, resume }: { programId?: 
 
   function start() {
     unlockAudio();
+    prepareNotifications();
     setStartedAt(Date.now());
     setPhase("active");
   }

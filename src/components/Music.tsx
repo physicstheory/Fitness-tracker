@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, ListMusic, Music, Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import * as spotify from "../lib/spotify";
+import { isNative } from "../lib/native";
 import { setState, useAppState } from "../store";
 import { Sheet, Switch } from "./ui";
 
@@ -27,7 +28,8 @@ export function MusicSettings({ notice }: { notice?: string }) {
   const [link, setLink] = useState("");
   const [error, setError] = useState(notice ?? "");
   const music = state.settings.workoutMusic;
-  const hasClientId = Boolean(spotify.clientId());
+  // Spotify sign-in needs a web redirect, so the iOS app uses pasted playlist links only.
+  const hasClientId = Boolean(spotify.clientId()) && !isNative;
 
   useEffect(() => {
     if (!connected) return setProfile(null);
@@ -104,7 +106,7 @@ export function MusicSettings({ notice }: { notice?: string }) {
 
       {error && <div className="banner error">{error}</div>}
 
-      {!connected && (
+      {!connected && !isNative && (
         <button className="row small muted" style={{ fontWeight: 650, gap: 4 }} onClick={() => setShowSetup((v) => !v)}>
           {showSetup ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {hasClientId ? "Spotify connection settings" : "Set up full Spotify connection"}
         </button>

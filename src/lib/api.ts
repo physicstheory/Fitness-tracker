@@ -1,10 +1,19 @@
-import type { AIProgram } from "../store";
+import { getState, type AIProgram } from "../store";
+import { isNative } from "./native";
 import type { ChatMessage, ExerciseGuide, GoalPlan } from "../types";
+
+/** Where the AI server lives. The web app uses its own origin; the iOS app needs a full URL. */
+export function apiBase(): string {
+  const fromSettings = getState().settings.serverUrl?.trim();
+  const base = fromSettings || (import.meta.env.VITE_API_BASE as string | undefined) || "";
+  return base.replace(/\/+$/, "");
+}
 
 async function request<T>(url: string, init: RequestInit): Promise<T> {
   let res: Response;
+  if (isNative && !apiBase()) throw new Error("No AI server set. Add one in Settings, or use the Claude app buttons.");
   try {
-    res = await fetch(url, init);
+    res = await fetch(apiBase() + url, init);
   } catch {
     throw new Error("Can't reach the server. Check your connection and that the app server is running.");
   }

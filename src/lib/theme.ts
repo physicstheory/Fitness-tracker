@@ -1,4 +1,5 @@
 import type { Settings } from "../types";
+import { setStatusBar } from "./native";
 
 /** Applies the Light / Dark / Auto choice. CSS reads data-theme; no attribute means follow the system. */
 export function applyTheme(theme: Settings["theme"]) {
@@ -7,4 +8,5 @@ export function applyTheme(theme: Settings["theme"]) {
   else root.setAttribute("data-theme", theme);
   const dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#0d0f14" : "#f3f4f8");
+  setStatusBar(dark);
 }

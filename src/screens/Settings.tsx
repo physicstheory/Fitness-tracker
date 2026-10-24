@@ -3,6 +3,7 @@ import { ChevronRight, Download, Dumbbell, Upload } from "lucide-react";
 import { Overlay, Sheet, Switch } from "../components/ui";
 import { MusicSettings } from "../components/Music";
 import { EquipmentPicker } from "../components/EquipmentPicker";
+import { isNative } from "../lib/native";
 import { findExercise, getState, replaceState, resetState, setState, useAppState } from "../store";
 import { useNav } from "../nav";
 import type { AppState, Level, Profile, Settings as SettingsT } from "../types";
@@ -185,6 +186,24 @@ export function Settings({ notice }: { notice?: string }) {
         </span>
         <ChevronRight className="faint" />
       </button>
+
+      {isNative && (
+        <div className="card col" style={{ gap: 8 }}>
+          <span className="eyebrow">AI server (optional)</span>
+          <p className="small muted">The coach and program import work through your Claude app without this. Add your RepRise server address (e.g. your Render link) to also use in-app AI.</p>
+          <input
+            className="input"
+            type="url"
+            inputMode="url"
+            autoCapitalize="off"
+            autoCorrect="off"
+            placeholder="https://your-app.onrender.com"
+            value={state.settings.serverUrl ?? ""}
+            onChange={(e) => setSettings({ serverUrl: e.target.value.trim() })}
+          />
+          <span className="small faint">Restart the app after changing this.</span>
+        </div>
+      )}
 
       <div className="card col" style={{ gap: 10 }}>
         <span className="eyebrow">Your data</span>
