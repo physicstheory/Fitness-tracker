@@ -65,7 +65,7 @@ class WorkoutModel {
         counter.stop();
     }
 
-    function onTick() {
+    function onTick() as Void {
         ticks += 1;
         var now = System.getTimer();
         if (restEnd != 0 && now >= restEnd) {
@@ -167,7 +167,7 @@ class WorkoutModel {
         );
     }
 
-    function onPlan(responseCode, data) {
+    function onPlan(responseCode, data) as Void {
         busy = false;
         if (responseCode == 200 && data instanceof Dictionary) {
             online = true;
@@ -218,7 +218,7 @@ class WorkoutModel {
         }
     }
 
-    function onSent(responseCode, data) {
+    function onSent(responseCode, data) as Void {
         if (responseCode == 200) {
             online = true;
             lastSync = System.getTimer();
