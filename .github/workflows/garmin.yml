@@ -65,8 +65,9 @@ jobs:
       - name: Simulator screenshots
         continue-on-error: true
         run: |
-          cat > garmin/bin/shots.sh <<'EOF'
+          cat > "$RUNNER_TEMP/shots.sh" <<'EOF'
           set -x
+          mkdir -p bin/shots
           apt-get update -qq >/dev/null && apt-get install -y -qq x11-apps imagemagick >/dev/null
           export DISPLAY=:1
           Xvfb :1 -screen 0 1280x1024x24 & sleep 2
@@ -78,8 +79,7 @@ jobs:
           sleep 5; import -window root bin/shots/simulator-2.png
           cat /tmp/monkeydo.log | tail -20
           EOF
-          mkdir -p garmin/bin/shots
-          docker run --rm --entrypoint /bin/bash -v "$PWD/garmin:/app" -w /app "$CIQ_IMAGE" bin/shots.sh
+          docker run --rm --entrypoint /bin/bash -v "$PWD/garmin:/app" -v "$RUNNER_TEMP/shots.sh:/shots.sh" -w /app "$CIQ_IMAGE" /shots.sh
           ls -l garmin/bin/shots
 
       - uses: actions/upload-artifact@v4
