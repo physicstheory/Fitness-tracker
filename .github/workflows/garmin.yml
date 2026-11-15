@@ -1,0 +1,107 @@
+# Builds the RepRise Garmin watch app (.prg) for every watch in garmin/manifest.xml.
+# Download the .prg for your watch from the release and drag it into GARMIN/APPS on the watch.
+name: Garmin watch app
+
+on:
+  push:
+    paths:
+      - "garmin/**"
+      - ".github/workflows/garmin.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: garmin-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Connect IQ SDK + device files (community image, see github.com/matco/connectiq-tester)
+  CIQ_IMAGE: ghcr.io/matco/connectiq-tester:latest
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set server address
+        # Set a repository variable API_BASE (e.g. https://your-app.onrender.com) to bake it in.
+        env:
+          API_BASE: ${{ vars.API_BASE }}
+        run: |
+          if [ -n "$API_BASE" ]; then
+            sed -i "s#const SERVER_URL = \".*\";#const SERVER_URL = \"${API_BASE%/}\";#" garmin/source/Config.mc
+          fi
+          grep SERVER_URL garmin/source/Config.mc
+
+      - name: Developer key
+        run: |
+          openssl genrsa -out /tmp/key.pem 4096
+          openssl pkcs8 -topk8 -inform PEM -outform DER -in /tmp/key.pem -out garmin/developer_key.der -nocrypt
+
+      - name: Compile
+        run: |
+          docker pull -q "$CIQ_IMAGE"
+          devices=$(grep -o 'product id="[^"]*"' garmin/manifest.xml | cut -d'"' -f2)
+          mkdir -p out
+          failed=""
+          for d in $devices; do
+            echo "::group::$d"
+            if docker run --rm --entrypoint /bin/bash -v "$PWD/garmin:/app" -w /app "$CIQ_IMAGE" \
+                -c "monkeyc -f monkey.jungle -d $d -o bin/RepRise-$d.prg -y developer_key.der -w" \
+                && [ -f "garmin/bin/RepRise-$d.prg" ]; then
+              cp "garmin/bin/RepRise-$d.prg" out/
+            else
+              failed="$failed $d"
+            fi
+            echo "::endgroup::"
+          done
+          ls -lh out
+          if [ -n "$failed" ]; then echo "::error::Failed to build for:$failed"; exit 1; fi
+
+      - name: Simulator screenshots
+        continue-on-error: true
+        run: |
+          cat > garmin/bin/shots.sh <<'EOF'
+          set -x
+          apt-get update -qq >/dev/null && apt-get install -y -qq x11-apps imagemagick >/dev/null
+          export DISPLAY=:1
+          Xvfb :1 -screen 0 1280x1024x24 & sleep 2
+          simulator >/tmp/sim.log 2>&1 & sleep 8
+          monkeyc -f monkey.jungle -d fr265_sim -o bin/sim.prg -y developer_key.der -w 2>/dev/null \
+            || monkeyc -f monkey.jungle -d fr265 -o bin/sim.prg -y developer_key.der -w
+          (monkeydo bin/sim.prg fr265 >/tmp/monkeydo.log 2>&1 &) ; sleep 15
+          import -window root bin/shots/simulator.png
+          sleep 5; import -window root bin/shots/simulator-2.png
+          cat /tmp/monkeydo.log | tail -20
+          EOF
+          mkdir -p garmin/bin/shots
+          docker run --rm --entrypoint /bin/bash -v "$PWD/garmin:/app" -w /app "$CIQ_IMAGE" bin/shots.sh
+          ls -l garmin/bin/shots
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: RepRise-garmin
+          path: |
+            out/*.prg
+            garmin/bin/shots/*.png
+          retention-days: 30
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: garmin-build-${{ github.run_number }}
+          name: RepRise Garmin build ${{ github.run_number }}
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          files: |
+            out/*.prg
+            garmin/bin/shots/*.png
+          body: |
+            RepRise watch app from `${{ github.sha }}`.
+            Download the **.prg for your watch** (e.g. `RepRise-fr265.prg` for a Forerunner 265), plug the watch into a computer
+            and drag the file into **GARMIN/APPS**. Unplug, and RepRise is in your apps list.
