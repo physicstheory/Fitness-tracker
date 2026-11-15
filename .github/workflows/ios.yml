@@ -41,7 +41,7 @@ jobs:
         env:
           # Optional: set a repository variable API_BASE (e.g. https://your-app.onrender.com)
           # to turn on the server-side AI features in the iOS app.
-          VITE_API_BASE: ${{ vars.API_BASE }}
+          VITE_API_BASE: ${{ vars.API_BASE || 'https://fitness-tracker-1-8lfw.onrender.com' }}
           VITE_SPOTIFY_CLIENT_ID: ${{ vars.SPOTIFY_CLIENT_ID }}
         run: npm run build
 

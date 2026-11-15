@@ -72,12 +72,16 @@ jobs:
           export DISPLAY=:1
           Xvfb :1 -screen 0 1280x1024x24 & sleep 2
           simulator >/tmp/sim.log 2>&1 & sleep 8
-          monkeyc -f monkey.jungle -d fr265s_sim -o bin/sim.prg -y developer_key.der -w 2>/dev/null \
-            || monkeyc -f monkey.jungle -d fr265s -o bin/sim.prg -y developer_key.der -w
-          (monkeydo bin/sim.prg fr265s >/tmp/monkeydo.log 2>&1 &) ; sleep 15
-          import -window root bin/shots/simulator.png
-          sleep 5; import -window root bin/shots/simulator-2.png
-          cat /tmp/monkeydo.log | tail -20
+          # 0 = live app (pairing screen), then the sample ready / counting / rest screens.
+          for s in 0 1 2 3; do
+            sed -i "s/const DEMO = [0-9]*;/const DEMO = $s;/" source/Config.mc
+            monkeyc -f monkey.jungle -d fr265s -o bin/sim.prg -y developer_key.der -w
+            [ -n "$MP" ] && kill $MP 2>/dev/null
+            monkeydo bin/sim.prg fr265s >/tmp/monkeydo.log 2>&1 & MP=$!; sleep 14
+            import -window root bin/shots/screen-$s.png
+          done
+          sed -i "s/const DEMO = [0-9]*;/const DEMO = 0;/" source/Config.mc
+          tail -20 /tmp/monkeydo.log
           EOF
           docker run --rm --entrypoint /bin/bash -v "$PWD/garmin:/app" -v "$RUNNER_TEMP/shots.sh:/shots.sh" -w /app "$CIQ_IMAGE" /shots.sh
           ls -l garmin/bin/shots

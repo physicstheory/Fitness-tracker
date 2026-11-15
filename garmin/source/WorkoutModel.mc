@@ -24,6 +24,8 @@ class WorkoutModel {
     var sets = 0;
     var target = 0;
     var restSec = 60;
+    // Length of the current rest, for the countdown ring.
+    var restTotal = 60;
     var exercise = 0;
     var exercises = 0;
     var nextName = "";
@@ -51,6 +53,32 @@ class WorkoutModel {
             code = (1000 + (Math.rand() % 9000).abs()).format("%d");
             Storage.setValue("code", code);
         }
+        if (Config.DEMO > 0) {
+            demo(Config.DEMO);
+        }
+    }
+
+    // Fixed sample states for simulator screenshots (Config.DEMO): 1 ready, 2 counting, 3 resting.
+    hidden function demo(state) {
+        busy = true;
+        online = true;
+        active = true;
+        name = "Push-Up";
+        setNo = 2;
+        sets = 4;
+        setIndex = 1;
+        target = 12;
+        exercise = 1;
+        exercises = 5;
+        lastSync = System.getTimer() + 3600000;
+        if (state == 2) {
+            counting = true;
+            reps = 8;
+        } else if (state == 3) {
+            setNo = 3;
+            restTotal = 90;
+            restEnd = System.getTimer() + 52000;
+        }
     }
 
     function start() {
@@ -67,6 +95,10 @@ class WorkoutModel {
     }
 
     function onTick() as Void {
+        if (Config.DEMO > 0) {
+            WatchUi.requestUpdate();
+            return;
+        }
         ticks += 1;
         var now = System.getTimer();
         if (restEnd != 0 && now >= restEnd) {
@@ -109,6 +141,7 @@ class WorkoutModel {
             result = holdSeconds();
         }
         sendEvent("set", result);
+        restTotal = restSec;
         restEnd = System.getTimer() + restSec * 1000;
         reps = 0;
         vibe(300);
@@ -189,6 +222,7 @@ class WorkoutModel {
             if (str(data["phase"]).equals("rest") && restEnd == 0 && !counting) {
                 var left = num(data["restLeft"]);
                 if (left > 0) {
+                    restTotal = restSec > left ? restSec : left;
                     restEnd = System.getTimer() + left * 1000;
                 }
             }

@@ -1,10 +1,20 @@
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.WatchUi;
 
+// Dark, orange-accented screens that match the RepRise phone app.
 class RepRiseView extends WatchUi.View {
     hidden var model;
+    hidden var logo;
+
+    const BG = 0x0B0D12;
+    const CARD = 0x1A1E27;
+    const TRACK = 0x262B36;
+    const MUTED = 0x8B93A7;
     const ORANGE = 0xFF5A36;
+    const AMBER = 0xFFA726;
+    const GREEN = 0x2FB67C;
     const CENTER = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
 
     function initialize(m) {
@@ -12,77 +22,249 @@ class RepRiseView extends WatchUi.View {
         model = m;
     }
 
+    function onLayout(dc) {
+        logo = WatchUi.loadResource(Rez.Drawables.Logo);
+    }
+
     function onUpdate(dc) {
         var w = dc.getWidth();
         var h = dc.getHeight();
-        var cx = w / 2;
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        if (dc has :setAntiAlias) {
+            dc.setAntiAlias(true);
+        }
+        dc.setColor(BG, BG);
         dc.clear();
-
-        // Connection dot: green when the phone link is live.
-        dc.setColor(model.online ? Graphics.COLOR_GREEN : Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(cx, (h * 0.08).toNumber(), 4);
 
         var rest = model.restLeft();
         if (model.counting) {
-            drawCounting(dc, w, h, cx);
+            drawCounting(dc, w, h);
         } else if (rest > 0) {
-            label(dc, cx, h * 0.24, Graphics.FONT_SMALL, "REST", Graphics.COLOR_LT_GRAY);
-            label(dc, cx, h * 0.48, Graphics.FONT_NUMBER_HOT, clock(rest), Graphics.COLOR_WHITE);
-            label(dc, cx, h * 0.70, Graphics.FONT_XTINY, model.active ? "Next: " + model.name : "", Graphics.COLOR_LT_GRAY);
-            label(dc, cx, h * 0.84, Graphics.FONT_XTINY, "START to go", ORANGE);
+            drawRest(dc, w, h, rest);
         } else if (model.active) {
-            label(dc, cx, h * 0.22, Graphics.FONT_XTINY, "Exercise " + model.exercise + "/" + model.exercises, Graphics.COLOR_LT_GRAY);
-            label(dc, cx, h * 0.36, Graphics.FONT_SMALL, model.name, Graphics.COLOR_WHITE);
-            label(dc, cx, h * 0.52, Graphics.FONT_MEDIUM, "Set " + model.setNo + " of " + model.sets, ORANGE);
-            var goal = model.target == 0 ? "Max effort" : model.type.equals("time") ? "Hold " + model.target.toString() + "s" : model.target.toString() + " reps";
-            label(dc, cx, h * 0.66, Graphics.FONT_SMALL, goal, Graphics.COLOR_WHITE);
-            label(dc, cx, h * 0.84, Graphics.FONT_XTINY, "START to begin", ORANGE);
+            drawReady(dc, w, h);
         } else {
-            label(dc, cx, h * 0.26, Graphics.FONT_MEDIUM, "RepRise", ORANGE);
-            label(dc, cx, h * 0.44, Graphics.FONT_SMALL, "Code " + model.code, Graphics.COLOR_WHITE);
-            label(dc, cx, h * 0.60, Graphics.FONT_XTINY, model.online ? "Start a workout on your phone" : "Enter the code in RepRise", Graphics.COLOR_LT_GRAY);
-            label(dc, cx, h * 0.70, Graphics.FONT_XTINY, model.online ? "" : "Settings > Garmin watch", Graphics.COLOR_LT_GRAY);
-            label(dc, cx, h * 0.84, Graphics.FONT_XTINY, "START: free set", ORANGE);
+            drawIdle(dc, w, h);
         }
     }
 
-    hidden function drawCounting(dc, w, h, cx) {
+    // ----- Screens -----
+
+    hidden function drawIdle(dc, w, h) {
+        var cx = w / 2;
+        if (logo != null) {
+            dc.drawBitmap(cx - logo.getWidth() / 2, (h * 0.20).toNumber() - logo.getHeight() / 2, logo);
+        }
+        // "Rep" in white, "Rise" in orange, like the app's wordmark.
+        var font = Graphics.FONT_SMALL;
+        var y = (h * 0.36).toNumber();
+        var w1 = dc.getTextWidthInPixels("Rep", font);
+        var w2 = dc.getTextWidthInPixels("Rise", font);
+        var x0 = cx - (w1 + w2) / 2;
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x0, y, font, "Rep", Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(ORANGE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x0 + w1, y, font, "Rise", Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+
+        // Pairing code card.
+        var codeFont = Graphics.FONT_NUMBER_MILD;
+        var eyebrowH = dc.getFontHeight(Graphics.FONT_XTINY);
+        var codeH = dc.getFontHeight(codeFont);
+        var cardW = (w * 0.56).toNumber();
+        var cardH = eyebrowH + codeH;
+        var cardY = (h * 0.56).toNumber() - cardH / 2;
+        dc.setColor(CARD, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(cx - cardW / 2, cardY, cardW, cardH, 14);
+        label(dc, cx, cardY + eyebrowH * 0.75, Graphics.FONT_XTINY, "PAIR CODE", MUTED);
+        label(dc, cx, cardY + eyebrowH * 0.5 + codeH * 0.55, codeFont, model.code, Graphics.COLOR_WHITE);
+
+        // Link status.
+        var status = model.online ? "Linked · start on phone" : "Enter code in the app";
+        statusLine(dc, cx, h * 0.75, status, model.online);
+        pill(dc, cx, h * 0.87, "START  free set", ORANGE, Graphics.COLOR_WHITE);
+    }
+
+    hidden function drawReady(dc, w, h) {
+        var cx = w / 2;
+        dc.setColor(model.online ? GREEN : TRACK, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, (h * 0.075).toNumber(), 4);
+
+        label(dc, cx, h * 0.17, Graphics.FONT_XTINY, "EXERCISE " + model.exercise + "/" + model.exercises, MUTED);
+        fitLabel(dc, cx, h * 0.29, model.name, w * 0.80, Graphics.COLOR_WHITE);
+        setDots(dc, cx, h * 0.40, model.setNo - 1, model.sets);
+
+        var isTime = model.type.equals("time");
+        if (model.target == 0) {
+            label(dc, cx, h * 0.57, Graphics.FONT_LARGE, "MAX", ORANGE);
+        } else {
+            label(dc, cx, h * 0.56, Graphics.FONT_NUMBER_HOT, model.target.toString(), ORANGE);
+        }
+        label(dc, cx, h * 0.71, Graphics.FONT_XTINY, isTime ? "SECOND HOLD" : model.target == 0 ? "REPS · MAX EFFORT" : "REPS", MUTED);
+        pill(dc, cx, h * 0.86, "START  set " + model.setNo + "/" + model.sets, ORANGE, Graphics.COLOR_WHITE);
+    }
+
+    hidden function drawCounting(dc, w, h) {
+        var cx = w / 2;
+        var cy = h / 2;
         var isTime = model.type.equals("time");
         var value = isTime ? model.holdSeconds() : model.reps;
-        // Progress ring toward the target.
-        if (model.target > 0) {
-            var frac = value.toFloat() / model.target;
-            if (frac > 1.0) {
-                frac = 1.0;
-            }
-            dc.setPenWidth(6);
-            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.drawCircle(cx, h / 2, cx - 5);
-            if (frac > 0) {
-                dc.setColor(ORANGE, Graphics.COLOR_TRANSPARENT);
-                if (frac >= 1.0) {
-                    dc.drawCircle(cx, h / 2, cx - 5);
-                } else {
-                    var end = 90 - (360 * frac).toNumber();
-                    if (end < 0) {
-                        end += 360;
-                    }
-                    dc.drawArc(cx, h / 2, cx - 5, Graphics.ARC_CLOCKWISE, 90, end);
-                }
-            }
-            dc.setPenWidth(1);
+        var frac = model.target > 0 ? value.toFloat() / model.target : 0.0;
+        ring(dc, cx, cy, cx - 9, frac, 10);
+
+        var title = model.name.length() > 0 ? model.name : "Free set";
+        fitSmall(dc, cx, h * 0.23, title, w * 0.62, MUTED);
+        if (model.sets > 0) {
+            label(dc, cx, h * 0.32, Graphics.FONT_XTINY, "SET " + model.setNo + " OF " + model.sets, ORANGE);
         }
-        label(dc, cx, h * 0.24, Graphics.FONT_XTINY, model.name.length() > 0 ? model.name : "Free set", Graphics.COLOR_LT_GRAY);
-        label(dc, cx, h * 0.50, Graphics.FONT_NUMBER_THAI_HOT, isTime ? clock(value) : value.toString(), ORANGE);
-        var sub = model.target > 0 ? (isTime ? "of " + model.target + "s" : "of " + model.target) : "max effort";
-        label(dc, cx, h * 0.72, Graphics.FONT_SMALL, sub, Graphics.COLOR_WHITE);
-        label(dc, cx, h * 0.84, Graphics.FONT_XTINY, isTime ? "START = stop" : "UP/DOWN fix · START done", Graphics.COLOR_LT_GRAY);
+        var done = model.target > 0 && value >= model.target;
+        label(dc, cx, h * 0.51, Graphics.FONT_NUMBER_THAI_HOT, isTime ? clock(value) : value.toString(), done ? ORANGE : Graphics.COLOR_WHITE);
+        var sub = model.target > 0 ? (isTime ? "of " + clock(model.target) : "of " + model.target + " reps") : "max effort";
+        label(dc, cx, h * 0.68, Graphics.FONT_TINY, sub, MUTED);
+        label(dc, cx, h * 0.80, Graphics.FONT_XTINY, isTime ? "START  done" : "UP/DOWN fix · START done", MUTED);
+    }
+
+    hidden function drawRest(dc, w, h, rest) {
+        var cx = w / 2;
+        var cy = h / 2;
+        var total = model.restTotal > 0 ? model.restTotal : rest;
+        ring(dc, cx, cy, cx - 9, rest.toFloat() / total, 10);
+
+        label(dc, cx, h * 0.25, Graphics.FONT_XTINY, "REST", ORANGE);
+        label(dc, cx, h * 0.43, Graphics.FONT_NUMBER_MEDIUM, clock(rest), Graphics.COLOR_WHITE);
+        if (model.active) {
+            label(dc, cx, h * 0.59, Graphics.FONT_XTINY, "UP NEXT · SET " + model.setNo + "/" + model.sets, MUTED);
+            fitSmall(dc, cx, h * 0.68, model.name, w * 0.66, Graphics.COLOR_WHITE);
+        }
+        pill(dc, cx, h * 0.82, "START  skip", CARD, ORANGE);
+    }
+
+    // ----- Pieces -----
+
+    // Progress ring with an orange-to-amber gradient and rounded ends.
+    hidden function ring(dc, cx, cy, r, frac, pen) {
+        if (frac > 1.0) {
+            frac = 1.0;
+        }
+        dc.setPenWidth(pen);
+        dc.setColor(TRACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawCircle(cx, cy, r);
+        if (frac <= 0.0) {
+            dc.setPenWidth(1);
+            return;
+        }
+        var steps = (frac * 48).toNumber();
+        if (steps < 1) {
+            steps = 1;
+        }
+        var sweep = 360.0 * frac;
+        for (var i = 0; i < steps; i++) {
+            var a0 = 90.0 - sweep * i / steps;
+            var a1 = 90.0 - sweep * (i + 1) / steps - 0.8;
+            dc.setColor(mix(ORANGE, AMBER, i.toFloat() / steps), Graphics.COLOR_TRANSPARENT);
+            dc.drawArc(cx, cy, r, Graphics.ARC_CLOCKWISE, norm(a0), norm(a1));
+        }
+        dc.setPenWidth(1);
+        // Rounded caps.
+        var capR = pen / 2;
+        dc.setColor(ORANGE, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy - r, capR);
+        var end = Math.toRadians(90.0 - sweep);
+        dc.setColor(AMBER, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx + (r * Math.cos(end)).toNumber(), cy - (r * Math.sin(end)).toNumber(), capR);
+    }
+
+    hidden function setDots(dc, cx, y, done, total) {
+        var n = total > 10 ? 10 : total;
+        if (n <= 0) {
+            return;
+        }
+        var gap = 16;
+        var x0 = cx - (n - 1) * gap / 2;
+        for (var i = 0; i < n; i++) {
+            var x = x0 + i * gap;
+            if (i < done) {
+                dc.setColor(ORANGE, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(x, y.toNumber(), 5);
+            } else if (i == done) {
+                dc.setColor(ORANGE, Graphics.COLOR_TRANSPARENT);
+                dc.setPenWidth(2);
+                dc.drawCircle(x, y.toNumber(), 5);
+                dc.setPenWidth(1);
+            } else {
+                dc.setColor(TRACK, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(x, y.toNumber(), 5);
+            }
+        }
+    }
+
+    hidden function pill(dc, cx, y, text, fill, color) {
+        var font = Graphics.FONT_XTINY;
+        var pw = dc.getTextWidthInPixels(text, font) + 32;
+        var ph = dc.getFontHeight(font) + 8;
+        var top = y.toNumber() - ph / 2;
+        dc.setColor(fill, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(cx - pw / 2, top, pw, ph, ph / 2);
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, top + ph / 2, font, text, CENTER);
+    }
+
+    hidden function statusLine(dc, cx, y, text, ok) {
+        var font = Graphics.FONT_XTINY;
+        var tw = dc.getTextWidthInPixels(text, font);
+        var x0 = cx - (tw + 14) / 2;
+        dc.setColor(ok ? GREEN : MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x0 + 4, y.toNumber(), 4);
+        dc.setColor(ok ? Graphics.COLOR_WHITE : MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x0 + 14, y.toNumber(), font, text, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    // Exercise name in the biggest font that fits.
+    hidden function fitLabel(dc, cx, y, text, maxW, color) {
+        var fonts = [Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY];
+        fitIn(dc, cx, y, text, maxW, color, fonts);
+    }
+
+    hidden function fitSmall(dc, cx, y, text, maxW, color) {
+        var fonts = [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY];
+        fitIn(dc, cx, y, text, maxW, color, fonts);
+    }
+
+    hidden function fitIn(dc, cx, y, text, maxW, color, fonts) {
+        var font = fonts[fonts.size() - 1];
+        for (var i = 0; i < fonts.size(); i++) {
+            if (dc.getTextWidthInPixels(text, fonts[i]) <= maxW) {
+                font = fonts[i];
+                break;
+            }
+        }
+        var base = text;
+        var n = base.length();
+        while (n > 3 && dc.getTextWidthInPixels(text, font) > maxW) {
+            n -= 1;
+            text = base.substring(0, n) + "...";
+        }
+        label(dc, cx, y, font, text, color);
     }
 
     hidden function label(dc, x, y, font, text, color) {
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y.toNumber(), font, text, CENTER);
+    }
+
+    hidden function mix(a, b, t) {
+        var r = ((a >> 16) & 0xFF) + ((((b >> 16) & 0xFF) - ((a >> 16) & 0xFF)) * t).toNumber();
+        var g = ((a >> 8) & 0xFF) + ((((b >> 8) & 0xFF) - ((a >> 8) & 0xFF)) * t).toNumber();
+        var bl = (a & 0xFF) + (((b & 0xFF) - (a & 0xFF)) * t).toNumber();
+        return (r << 16) | (g << 8) | bl;
+    }
+
+    hidden function norm(a) {
+        while (a < 0) {
+            a += 360.0;
+        }
+        while (a >= 360) {
+            a -= 360.0;
+        }
+        return a;
     }
 
     hidden function clock(sec) {
