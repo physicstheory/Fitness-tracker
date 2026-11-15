@@ -50,7 +50,7 @@ class RepCounter {
         Sensor.unregisterSensorDataListener();
     }
 
-    function onData(data) as Void {
+    function onData(data as Sensor.SensorData) as Void {
         var acc = data.accelerometerData;
         if (acc == null) {
             return;

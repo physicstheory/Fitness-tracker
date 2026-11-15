@@ -3,6 +3,7 @@ import Toybox.Attention;
 import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Math;
+import Toybox.PersistedContent;
 import Toybox.System;
 import Toybox.Timer;
 import Toybox.WatchUi;
@@ -167,7 +168,7 @@ class WorkoutModel {
         );
     }
 
-    function onPlan(responseCode, data) as Void {
+    function onPlan(responseCode as Number, data as Null or Dictionary or String or PersistedContent.Iterator) as Void {
         busy = false;
         if (responseCode == 200 && data instanceof Dictionary) {
             online = true;
@@ -218,7 +219,7 @@ class WorkoutModel {
         }
     }
 
-    function onSent(responseCode, data) as Void {
+    function onSent(responseCode as Number, data as Null or Dictionary or String or PersistedContent.Iterator) as Void {
         if (responseCode == 200) {
             online = true;
             lastSync = System.getTimer();
