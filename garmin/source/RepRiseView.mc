@@ -51,36 +51,49 @@ class RepRiseView extends WatchUi.View {
 
     hidden function drawIdle(dc, w, h) {
         var cx = w / 2;
-        if (logo != null) {
-            dc.drawBitmap(cx - logo.getWidth() / 2, (h * 0.20).toNumber() - logo.getHeight() / 2, logo);
+        var small = Graphics.FONT_XTINY;
+        var wordFont = Graphics.FONT_TINY;
+        var codeFont = Graphics.FONT_NUMBER_MILD;
+        var smallH = dc.getFontHeight(small);
+        var wordH = dc.getFontHeight(wordFont);
+        var codeH = (dc.getFontHeight(codeFont) * 0.8).toNumber();
+        var cardH = smallH + codeH + 10;
+        var pillH = smallH + 8;
+        var logoH = logo != null ? logo.getHeight() + 6 : 0;
+        // Stack everything in a column centred on the screen; drop the logo if it won't fit.
+        var total = logoH + wordH + 8 + cardH + 10 + smallH + 10 + pillH;
+        if (total > h * 0.86) {
+            total -= logoH;
+            logoH = 0;
         }
+        var y = (h - total) / 2;
+        if (logoH > 0) {
+            dc.drawBitmap(cx - logo.getWidth() / 2, y, logo);
+            y += logoH;
+        }
+
         // "Rep" in white, "Rise" in orange, like the app's wordmark.
-        var font = Graphics.FONT_SMALL;
-        var y = (h * 0.36).toNumber();
-        var w1 = dc.getTextWidthInPixels("Rep", font);
-        var w2 = dc.getTextWidthInPixels("Rise", font);
+        var w1 = dc.getTextWidthInPixels("Rep", wordFont);
+        var w2 = dc.getTextWidthInPixels("Rise", wordFont);
         var x0 = cx - (w1 + w2) / 2;
+        var my = y + wordH / 2;
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x0, y, font, "Rep", Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(x0, my, wordFont, "Rep", Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.setColor(ORANGE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x0 + w1, y, font, "Rise", Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(x0 + w1, my, wordFont, "Rise", Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        y += wordH + 8;
 
         // Pairing code card.
-        var codeFont = Graphics.FONT_NUMBER_MILD;
-        var eyebrowH = dc.getFontHeight(Graphics.FONT_XTINY);
-        var codeH = dc.getFontHeight(codeFont);
-        var cardW = (w * 0.56).toNumber();
-        var cardH = eyebrowH + codeH;
-        var cardY = (h * 0.56).toNumber() - cardH / 2;
+        var cardW = (w * 0.50).toNumber();
         dc.setColor(CARD, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(cx - cardW / 2, cardY, cardW, cardH, 14);
-        label(dc, cx, cardY + eyebrowH * 0.75, Graphics.FONT_XTINY, "PAIR CODE", MUTED);
-        label(dc, cx, cardY + eyebrowH * 0.5 + codeH * 0.55, codeFont, model.code, Graphics.COLOR_WHITE);
+        dc.fillRoundedRectangle(cx - cardW / 2, y, cardW, cardH, 14);
+        label(dc, cx, y + 5 + smallH / 2, small, "PAIR CODE", MUTED);
+        label(dc, cx, y + 5 + smallH + codeH / 2, codeFont, model.code, Graphics.COLOR_WHITE);
+        y += cardH + 10;
 
-        // Link status.
-        var status = model.online ? "Linked · start on phone" : "Enter code in the app";
-        statusLine(dc, cx, h * 0.75, status, model.online);
-        pill(dc, cx, h * 0.87, "START  free set", ORANGE, Graphics.COLOR_WHITE);
+        statusLine(dc, cx, y + smallH / 2, model.online ? "Linked" : "Enter code in app", model.online);
+        y += smallH + 10;
+        pill(dc, cx, y + pillH / 2, "START  free set", ORANGE, Graphics.COLOR_WHITE);
     }
 
     hidden function drawReady(dc, w, h) {
@@ -119,7 +132,7 @@ class RepRiseView extends WatchUi.View {
         label(dc, cx, h * 0.51, Graphics.FONT_NUMBER_THAI_HOT, isTime ? clock(value) : value.toString(), done ? ORANGE : Graphics.COLOR_WHITE);
         var sub = model.target > 0 ? (isTime ? "of " + clock(model.target) : "of " + model.target + " reps") : "max effort";
         label(dc, cx, h * 0.68, Graphics.FONT_TINY, sub, MUTED);
-        label(dc, cx, h * 0.80, Graphics.FONT_XTINY, isTime ? "START  done" : "UP/DOWN fix · START done", MUTED);
+        label(dc, cx, h * 0.79, Graphics.FONT_XTINY, "START  done", MUTED);
     }
 
     hidden function drawRest(dc, w, h, rest) {
@@ -177,21 +190,25 @@ class RepRiseView extends WatchUi.View {
         if (n <= 0) {
             return;
         }
-        var gap = 16;
+        var r = dc.getWidth() / 52;
+        if (r < 4) {
+            r = 4;
+        }
+        var gap = r * 3;
         var x0 = cx - (n - 1) * gap / 2;
         for (var i = 0; i < n; i++) {
             var x = x0 + i * gap;
             if (i < done) {
                 dc.setColor(ORANGE, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(x, y.toNumber(), 5);
+                dc.fillCircle(x, y.toNumber(), r);
             } else if (i == done) {
                 dc.setColor(ORANGE, Graphics.COLOR_TRANSPARENT);
                 dc.setPenWidth(2);
-                dc.drawCircle(x, y.toNumber(), 5);
+                dc.drawCircle(x, y.toNumber(), r);
                 dc.setPenWidth(1);
             } else {
                 dc.setColor(TRACK, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(x, y.toNumber(), 5);
+                dc.fillCircle(x, y.toNumber(), r);
             }
         }
     }
