@@ -72,9 +72,9 @@ jobs:
           export DISPLAY=:1
           Xvfb :1 -screen 0 1280x1024x24 & sleep 2
           simulator >/tmp/sim.log 2>&1 & sleep 8
-          monkeyc -f monkey.jungle -d fr265_sim -o bin/sim.prg -y developer_key.der -w 2>/dev/null \
-            || monkeyc -f monkey.jungle -d fr265 -o bin/sim.prg -y developer_key.der -w
-          (monkeydo bin/sim.prg fr265 >/tmp/monkeydo.log 2>&1 &) ; sleep 15
+          monkeyc -f monkey.jungle -d fr265s_sim -o bin/sim.prg -y developer_key.der -w 2>/dev/null \
+            || monkeyc -f monkey.jungle -d fr265s -o bin/sim.prg -y developer_key.der -w
+          (monkeydo bin/sim.prg fr265s >/tmp/monkeydo.log 2>&1 &) ; sleep 15
           import -window root bin/shots/simulator.png
           sleep 5; import -window root bin/shots/simulator-2.png
           cat /tmp/monkeydo.log | tail -20
