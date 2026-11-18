@@ -36,7 +36,9 @@ class RepRiseView extends WatchUi.View {
         dc.clear();
 
         var rest = model.restLeft();
-        if (model.counting) {
+        if (model.finished) {
+            drawSummary(dc, w, h);
+        } else if (model.counting) {
             drawCounting(dc, w, h);
         } else if (rest > 0) {
             drawRest(dc, w, h, rest);
@@ -91,17 +93,19 @@ class RepRiseView extends WatchUi.View {
         label(dc, cx, y + 5 + smallH + codeH / 2, codeFont, model.code, Graphics.COLOR_WHITE);
         y += cardH + 10;
 
-        statusLine(dc, cx, y + smallH / 2, model.online ? "Linked" : "Enter code in app", model.online);
+        statusLine(dc, cx, y + smallH / 2, model.online ? "Phone linked" : "Phone not linked", model.online);
         y += smallH + 10;
-        pill(dc, cx, y + pillH / 2, "START  free set", ORANGE, Graphics.COLOR_WHITE);
+        pill(dc, cx, y + pillH / 2, "START  workouts", ORANGE, Graphics.COLOR_WHITE);
     }
 
     hidden function drawReady(dc, w, h) {
         var cx = w / 2;
-        dc.setColor(model.online ? GREEN : TRACK, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(cx, (h * 0.075).toNumber(), 4);
-
-        label(dc, cx, h * 0.17, Graphics.FONT_XTINY, "EXERCISE " + model.exercise + "/" + model.exercises, MUTED);
+        if (!model.local) {
+            dc.setColor(model.online ? GREEN : TRACK, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(cx, (h * 0.075).toNumber(), 4);
+        }
+        var eyebrow = model.exercises > 1 ? "EXERCISE " + model.exercise + "/" + model.exercises : model.local ? "ON WATCH" : "EXERCISE";
+        label(dc, cx, h * 0.17, Graphics.FONT_XTINY, eyebrow, MUTED);
         fitLabel(dc, cx, h * 0.29, model.name, w * 0.80, Graphics.COLOR_WHITE);
         setDots(dc, cx, h * 0.40, model.setNo - 1, model.sets);
 
@@ -148,6 +152,17 @@ class RepRiseView extends WatchUi.View {
             fitSmall(dc, cx, h * 0.68, model.name, w * 0.66, Graphics.COLOR_WHITE);
         }
         pill(dc, cx, h * 0.82, "START  skip", CARD, ORANGE);
+    }
+
+    hidden function drawSummary(dc, w, h) {
+        var cx = w / 2;
+        label(dc, cx, h * 0.18, Graphics.FONT_XTINY, "WORKOUT DONE", ORANGE);
+        fitLabel(dc, cx, h * 0.30, model.title, w * 0.78, Graphics.COLOR_WHITE);
+        label(dc, cx, h * 0.49, Graphics.FONT_NUMBER_HOT, model.sessionReps.toString(), ORANGE);
+        label(dc, cx, h * 0.63, Graphics.FONT_XTINY, "TOTAL REPS", MUTED);
+        var mins = model.workoutMinutes();
+        label(dc, cx, h * 0.72, Graphics.FONT_TINY, model.sessionSets + " sets · " + mins + " min", Graphics.COLOR_WHITE);
+        pill(dc, cx, h * 0.85, "START  done", ORANGE, Graphics.COLOR_WHITE);
     }
 
     // ----- Pieces -----
