@@ -90,25 +90,25 @@ module Library {
             return ex[5];
         }
         var n = name.toLower();
-        if (has(n, "jump") || has(n, "burpee") || has(n, "climber") || has(n, "knees") || has(n, "swing") || has(n, "skater")) {
+        if (contains(n, "jump") || contains(n, "burpee") || contains(n, "climber") || contains(n, "knees") || contains(n, "swing") || contains(n, "skater")) {
             return 5;
         }
-        if (has(n, "curl") || has(n, "raise") || has(n, "extension") || has(n, "kickback") || has(n, "fly") || has(n, "shrug") || has(n, "crusher")) {
-            return has(n, "leg") || has(n, "calf") ? (has(n, "calf") ? 1 : 4) : 3;
+        if (contains(n, "curl") || contains(n, "raise") || contains(n, "extension") || contains(n, "kickback") || contains(n, "fly") || contains(n, "shrug") || contains(n, "crusher")) {
+            return contains(n, "leg") || contains(n, "calf") ? (contains(n, "calf") ? 1 : 4) : 3;
         }
-        if (has(n, "pull") || has(n, "chin") || has(n, "row")) {
+        if (contains(n, "pull") || contains(n, "chin") || contains(n, "row")) {
             return 2;
         }
-        if (has(n, "squat") || has(n, "lunge") || has(n, "deadlift") || has(n, "bridge") || has(n, "thrust") || has(n, "step")) {
+        if (contains(n, "squat") || contains(n, "lunge") || contains(n, "deadlift") || contains(n, "bridge") || contains(n, "thrust") || contains(n, "step")) {
             return 1;
         }
-        if (has(n, "crunch") || has(n, "sit-up") || has(n, "twist") || has(n, "v-up")) {
+        if (contains(n, "crunch") || contains(n, "sit-up") || contains(n, "twist") || contains(n, "v-up")) {
             return 4;
         }
         return 0;
     }
 
-    function has(s, part) {
+    function contains(s, part) {
         return s.find(part) != null;
     }
 }
