@@ -89,18 +89,18 @@ class CalibrateView extends WatchUi.View {
         var h = dc.getHeight();
         var cx = w / 2;
         Ui.ring(dc, cx, h / 2, cx - 9, amps.size().toFloat() / NEEDED, 10);
-        Ui.label(dc, cx, h * 0.24, Graphics.FONT_XTINY, "CALIBRATE", Ui.ORANGE);
-        Ui.fit(dc, cx, h * 0.33, name, w * 0.62, Graphics.COLOR_WHITE, [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY], Ui.CENTER);
+        Ui.label(dc, cx, h * 0.24, Ui.fCaps, "CALIBRATE", Ui.ORANGE);
+        Ui.fit(dc, cx, h * 0.33, name, w * 0.62, Graphics.COLOR_WHITE, [Ui.fTitle, Ui.fBody, Ui.fSmall], Ui.CENTER);
         if (done) {
-            Ui.label(dc, cx, h * 0.52, Graphics.FONT_MEDIUM, "Learned", Ui.ORANGE);
-            Ui.label(dc, cx, h * 0.64, Graphics.FONT_XTINY, "Counting now fits your reps", Ui.MUTED);
+            Ui.label(dc, cx, h * 0.52, Ui.fTitle, "Learned", Ui.ORANGE);
+            Ui.label(dc, cx, h * 0.64, Ui.fSmall, "Counting now fits your reps", Ui.MUTED);
             Ui.pill(dc, cx, h * 0.80, "START  done", Ui.ORANGE, Graphics.COLOR_WHITE);
         } else if (started) {
-            Ui.label(dc, cx, h * 0.52, Graphics.FONT_NUMBER_MEDIUM, amps.size() + "/" + NEEDED, Graphics.COLOR_WHITE);
-            Ui.label(dc, cx, h * 0.68, Graphics.FONT_XTINY, "Slow, full reps", Ui.MUTED);
+            Ui.label(dc, cx, h * 0.52, Ui.fBig, amps.size() + "/" + NEEDED, Graphics.COLOR_WHITE);
+            Ui.label(dc, cx, h * 0.68, Ui.fSmall, "Slow, full reps", Ui.MUTED);
         } else {
-            Ui.label(dc, cx, h * 0.50, Graphics.FONT_XTINY, "Get into position, press START,", Ui.MUTED);
-            Ui.label(dc, cx, h * 0.58, Graphics.FONT_XTINY, "then do " + NEEDED + " slow, full reps", Ui.MUTED);
+            Ui.label(dc, cx, h * 0.50, Ui.fSmall, "Get into position, press START,", Ui.MUTED);
+            Ui.label(dc, cx, h * 0.58, Ui.fSmall, "then do " + NEEDED + " slow, full reps", Ui.MUTED);
             Ui.pill(dc, cx, h * 0.76, "START", Ui.ORANGE, Graphics.COLOR_WHITE);
         }
     }

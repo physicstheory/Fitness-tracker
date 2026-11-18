@@ -1,0 +1,8 @@
+<fonts>
+    <font id="Huge" filename="huge.fnt" antialias="true" />
+    <font id="Big" filename="big.fnt" antialias="true" />
+    <font id="Title" filename="title.fnt" antialias="true" />
+    <font id="Caps" filename="caps.fnt" antialias="true" />
+    <font id="Body" filename="body.fnt" antialias="true" />
+    <font id="Small" filename="small.fnt" antialias="true" />
+</fonts>

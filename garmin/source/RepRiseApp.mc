@@ -20,6 +20,7 @@ class RepRiseApp extends Application.AppBase {
     }
 
     function getInitialView() {
+        Ui.loadFonts();
         return [new RepRiseView(model), new RepRiseDelegate(model)];
     }
 }

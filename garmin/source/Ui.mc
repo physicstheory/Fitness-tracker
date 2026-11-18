@@ -1,6 +1,7 @@
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Math;
+import Toybox.WatchUi;
 
 // Colours and drawing pieces shared by every screen, matching the RepRise phone app.
 module Ui {
@@ -14,6 +15,24 @@ module Ui {
     const GREEN = 0x2FB67C;
     const CENTER = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
     const LEFT = Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER;
+
+    // The phone app's typefaces as bitmap fonts (see garmin/tools/make_fonts.py):
+    // Unbounded for numbers, titles and small caps, Manrope for body text.
+    var fHuge;
+    var fBig;
+    var fTitle;
+    var fCaps;
+    var fBody;
+    var fSmall;
+
+    function loadFonts() {
+        fHuge = WatchUi.loadResource(Rez.Fonts.Huge);
+        fBig = WatchUi.loadResource(Rez.Fonts.Big);
+        fTitle = WatchUi.loadResource(Rez.Fonts.Title);
+        fCaps = WatchUi.loadResource(Rez.Fonts.Caps);
+        fBody = WatchUi.loadResource(Rez.Fonts.Body);
+        fSmall = WatchUi.loadResource(Rez.Fonts.Small);
+    }
 
     function clear(dc) {
         if (dc has :setAntiAlias) {
@@ -29,7 +48,8 @@ module Ui {
     }
 
     function pill(dc, cx, y, text, fill, color) {
-        var font = Graphics.FONT_XTINY;
+        var font = Ui.fCaps;
+        text = text.toUpper();
         var pw = dc.getTextWidthInPixels(text, font) + 32;
         var ph = dc.getFontHeight(font) + 8;
         var top = y.toNumber() - ph / 2;

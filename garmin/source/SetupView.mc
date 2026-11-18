@@ -36,8 +36,8 @@ class SetupView extends WatchUi.View {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cx = w / 2;
-        Ui.label(dc, cx, h * 0.13, Graphics.FONT_XTINY, "EDIT", Ui.ORANGE);
-        Ui.fit(dc, cx, h * 0.23, name, w * 0.70, Graphics.COLOR_WHITE, [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY], Ui.CENTER);
+        Ui.label(dc, cx, h * 0.13, Ui.fCaps, "EDIT", Ui.ORANGE);
+        Ui.fit(dc, cx, h * 0.23, name, w * 0.70, Graphics.COLOR_WHITE, [Ui.fTitle, Ui.fBody, Ui.fSmall], Ui.CENTER);
 
         var labels = ["SETS", isTime ? "SECONDS" : "REPS", "REST"];
         var shown = [values[0].toString(), values[1] == 0 ? "max" : values[1].toString(), Ui.clock(values[2])];
@@ -55,10 +55,10 @@ class SetupView extends WatchUi.View {
                 dc.setPenWidth(1);
             }
             dc.setColor(Ui.MUTED, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx - rowW / 2 + 14, cy, Graphics.FONT_XTINY, labels[i], Ui.LEFT);
+            dc.drawText(cx - rowW / 2 + 14, cy, Ui.fCaps, labels[i], Ui.LEFT);
             dc.setColor(on ? Ui.ORANGE : Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
             var vx = cx + rowW / 2 - 14;
-            dc.drawText(vx, cy, Graphics.FONT_SMALL, shown[i], Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+            dc.drawText(vx, cy, Ui.fTitle, shown[i], Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
             if (on) {
                 // Up/down arrows hint.
                 var ax = cx - rowW / 2 - 12;

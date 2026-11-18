@@ -75,9 +75,9 @@ class RepRiseView extends WatchUi.View {
 
     hidden function drawIdle(dc, w, h) {
         var cx = w / 2;
-        var small = Graphics.FONT_XTINY;
-        var wordFont = Graphics.FONT_TINY;
-        var codeFont = Graphics.FONT_NUMBER_MILD;
+        var small = Ui.fSmall;
+        var wordFont = Ui.fTitle;
+        var codeFont = Ui.fBig;
         var smallH = dc.getFontHeight(small);
         var wordH = dc.getFontHeight(wordFont);
         var codeH = (dc.getFontHeight(codeFont) * 0.8).toNumber();
@@ -111,7 +111,7 @@ class RepRiseView extends WatchUi.View {
         var cardW = (w * 0.50).toNumber();
         dc.setColor(CARD, Graphics.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(cx - cardW / 2, y, cardW, cardH, 14);
-        label(dc, cx, y + 5 + smallH / 2, small, "PAIR CODE", MUTED);
+        label(dc, cx, y + 5 + smallH / 2, Ui.fCaps, "PAIR CODE", MUTED);
         label(dc, cx, y + 5 + smallH + codeH / 2, codeFont, model.code, Graphics.COLOR_WHITE);
         y += cardH + 10;
 
@@ -127,17 +127,17 @@ class RepRiseView extends WatchUi.View {
             dc.fillCircle(cx, (h * 0.075).toNumber(), 4);
         }
         var eyebrow = model.exercises > 1 ? "EXERCISE " + model.exercise + "/" + model.exercises : model.local ? "ON WATCH" : "EXERCISE";
-        label(dc, cx, h * 0.17, Graphics.FONT_XTINY, eyebrow, MUTED);
+        label(dc, cx, h * 0.17, Ui.fCaps, eyebrow, MUTED);
         fitLabel(dc, cx, h * 0.29, model.name, w * 0.80, Graphics.COLOR_WHITE);
         setDots(dc, cx, h * 0.40, model.setNo - 1, model.sets);
 
         var isTime = model.type.equals("time");
         if (model.target == 0) {
-            label(dc, cx, h * 0.57, Graphics.FONT_LARGE, "MAX", ORANGE);
+            label(dc, cx, h * 0.57, Ui.fTitle, "MAX", ORANGE);
         } else {
-            label(dc, cx, h * 0.56, Graphics.FONT_NUMBER_HOT, model.target.toString(), ORANGE);
+            label(dc, cx, h * 0.56, Ui.fHuge, model.target.toString(), ORANGE);
         }
-        label(dc, cx, h * 0.71, Graphics.FONT_XTINY, isTime ? "SECOND HOLD" : model.target == 0 ? "REPS · MAX EFFORT" : "REPS", MUTED);
+        label(dc, cx, h * 0.71, Ui.fCaps, isTime ? "SECOND HOLD" : model.target == 0 ? "REPS · MAX EFFORT" : "REPS", MUTED);
         pill(dc, cx, h * 0.86, "START  set " + model.setNo + "/" + model.sets, ORANGE, Graphics.COLOR_WHITE);
     }
 
@@ -152,13 +152,13 @@ class RepRiseView extends WatchUi.View {
         var title = model.name.length() > 0 ? model.name : "Free set";
         fitSmall(dc, cx, h * 0.23, title, w * 0.62, MUTED);
         if (model.sets > 0) {
-            label(dc, cx, h * 0.32, Graphics.FONT_XTINY, "SET " + model.setNo + " OF " + model.sets, ORANGE);
+            label(dc, cx, h * 0.32, Ui.fCaps, "SET " + model.setNo + " OF " + model.sets, ORANGE);
         }
         var done = model.target > 0 && value >= model.target;
-        label(dc, cx, h * 0.51, Graphics.FONT_NUMBER_THAI_HOT, isTime ? clock(value) : value.toString(), done ? ORANGE : Graphics.COLOR_WHITE);
+        label(dc, cx, h * 0.51, Ui.fHuge, isTime ? clock(value) : value.toString(), done ? ORANGE : Graphics.COLOR_WHITE);
         var sub = model.target > 0 ? (isTime ? "of " + clock(model.target) : "of " + model.target + " reps") : "max effort";
-        label(dc, cx, h * 0.68, Graphics.FONT_TINY, sub, MUTED);
-        label(dc, cx, h * 0.79, Graphics.FONT_XTINY, "START  done", MUTED);
+        label(dc, cx, h * 0.68, Ui.fBody, sub, MUTED);
+        label(dc, cx, h * 0.79, Ui.fSmall, "START  done", MUTED);
     }
 
     hidden function drawRest(dc, w, h, rest) {
@@ -167,10 +167,10 @@ class RepRiseView extends WatchUi.View {
         var total = model.restTotal > 0 ? model.restTotal : rest;
         ring(dc, cx, cy, cx - 9, rest.toFloat() / total, 10);
 
-        label(dc, cx, h * 0.25, Graphics.FONT_XTINY, "REST", ORANGE);
-        label(dc, cx, h * 0.43, Graphics.FONT_NUMBER_MEDIUM, clock(rest), Graphics.COLOR_WHITE);
+        label(dc, cx, h * 0.25, Ui.fCaps, "REST", ORANGE);
+        label(dc, cx, h * 0.43, Ui.fBig, clock(rest), Graphics.COLOR_WHITE);
         if (model.active) {
-            label(dc, cx, h * 0.59, Graphics.FONT_XTINY, "UP NEXT · SET " + model.setNo + "/" + model.sets, MUTED);
+            label(dc, cx, h * 0.59, Ui.fCaps, "UP NEXT · SET " + model.setNo + "/" + model.sets, MUTED);
             fitSmall(dc, cx, h * 0.68, model.name, w * 0.66, Graphics.COLOR_WHITE);
         }
         pill(dc, cx, h * 0.82, "START  skip", CARD, ORANGE);
@@ -178,12 +178,12 @@ class RepRiseView extends WatchUi.View {
 
     hidden function drawSummary(dc, w, h) {
         var cx = w / 2;
-        label(dc, cx, h * 0.18, Graphics.FONT_XTINY, "WORKOUT DONE", ORANGE);
+        label(dc, cx, h * 0.18, Ui.fCaps, "WORKOUT DONE", ORANGE);
         fitLabel(dc, cx, h * 0.30, model.title, w * 0.78, Graphics.COLOR_WHITE);
-        label(dc, cx, h * 0.49, Graphics.FONT_NUMBER_HOT, model.sessionReps.toString(), ORANGE);
-        label(dc, cx, h * 0.63, Graphics.FONT_XTINY, "TOTAL REPS", MUTED);
+        label(dc, cx, h * 0.49, Ui.fHuge, model.sessionReps.toString(), ORANGE);
+        label(dc, cx, h * 0.63, Ui.fCaps, "TOTAL REPS", MUTED);
         var mins = model.workoutMinutes();
-        label(dc, cx, h * 0.72, Graphics.FONT_TINY, model.sessionSets + " sets · " + mins + " min", Graphics.COLOR_WHITE);
+        label(dc, cx, h * 0.72, Ui.fBody, model.sessionSets + " sets · " + mins + " min", Graphics.COLOR_WHITE);
         pill(dc, cx, h * 0.85, "START  done", ORANGE, Graphics.COLOR_WHITE);
     }
 
@@ -251,7 +251,8 @@ class RepRiseView extends WatchUi.View {
     }
 
     hidden function pill(dc, cx, y, text, fill, color) {
-        var font = Graphics.FONT_XTINY;
+        var font = Ui.fCaps;
+        text = text.toUpper();
         var pw = dc.getTextWidthInPixels(text, font) + 32;
         var ph = dc.getFontHeight(font) + 8;
         var top = y.toNumber() - ph / 2;
@@ -262,7 +263,7 @@ class RepRiseView extends WatchUi.View {
     }
 
     hidden function statusLine(dc, cx, y, text, ok) {
-        var font = Graphics.FONT_XTINY;
+        var font = Ui.fSmall;
         var tw = dc.getTextWidthInPixels(text, font);
         var x0 = cx - (tw + 14) / 2;
         dc.setColor(ok ? GREEN : MUTED, Graphics.COLOR_TRANSPARENT);
@@ -273,12 +274,12 @@ class RepRiseView extends WatchUi.View {
 
     // Exercise name in the biggest font that fits.
     hidden function fitLabel(dc, cx, y, text, maxW, color) {
-        var fonts = [Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY];
+        var fonts = [Ui.fTitle, Ui.fBody, Ui.fSmall];
         fitIn(dc, cx, y, text, maxW, color, fonts);
     }
 
     hidden function fitSmall(dc, cx, y, text, maxW, color) {
-        var fonts = [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY];
+        var fonts = [Ui.fTitle, Ui.fBody, Ui.fSmall];
         fitIn(dc, cx, y, text, maxW, color, fonts);
     }
 

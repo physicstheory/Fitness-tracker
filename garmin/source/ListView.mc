@@ -48,7 +48,7 @@ class ListView extends WatchUi.View {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cx = w / 2;
-        Ui.label(dc, cx, h * 0.12, Graphics.FONT_XTINY, title.toUpper(), Ui.ORANGE);
+        Ui.label(dc, cx, h * 0.12, Ui.fCaps, title.toUpper(), Ui.ORANGE);
 
         var cardH = (h * 0.22).toNumber();
         var gap = (h * 0.035).toNumber();
@@ -116,11 +116,11 @@ class ListView extends WatchUi.View {
 
         var labelColor = !focused ? Ui.MUTED : kind == 1 ? Graphics.COLOR_WHITE : kind == 4 ? 0xFF4D5E : Graphics.COLOR_WHITE;
         var sub = item[1];
-        var fonts = focused ? [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY] : [Graphics.FONT_TINY, Graphics.FONT_XTINY];
+        var fonts = focused ? [Ui.fTitle, Ui.fBody, Ui.fSmall] : [Ui.fBody, Ui.fSmall];
         if (sub != null && sub.length() > 0 && focused) {
-            var lh = dc.getFontHeight(Graphics.FONT_TINY);
-            Ui.fit(dc, textX, cy - lh / 2 + 2, item[0], textW, labelColor, [Graphics.FONT_TINY, Graphics.FONT_XTINY], Ui.LEFT);
-            Ui.fit(dc, textX, cy + lh / 2 + 2, sub, textW, kind == 1 ? Graphics.COLOR_WHITE : Ui.MUTED, [Graphics.FONT_XTINY], Ui.LEFT);
+            var lh = dc.getFontHeight(Ui.fBody);
+            Ui.fit(dc, textX, cy - lh / 2 + 2, item[0], textW, labelColor, [Ui.fBody, Ui.fSmall], Ui.LEFT);
+            Ui.fit(dc, textX, cy + lh / 2 + 2, sub, textW, kind == 1 ? Graphics.COLOR_WHITE : Ui.MUTED, [Ui.fSmall], Ui.LEFT);
         } else {
             Ui.fit(dc, textX, cy, item[0], textW, labelColor, fonts, Ui.LEFT);
         }
