@@ -60,6 +60,10 @@ class RepCounter {
     hidden var confirmed = false;
     hidden var bad = 0;
     hidden var ampRef = 160.0;
+    hidden var perRef = 0;
+
+    // Calibration: every clean down-and-up cycle is reported to learnCb(p2p, period) instead of counted.
+    hidden var learnCb = null;
 
     hidden var lastStep = -9999;
     hidden var steps = 0;
@@ -80,6 +84,23 @@ class RepCounter {
         bouncy = p[3] == 1;
     }
 
+    // A profile learned from the user's own reps (see Store.calibration).
+    function setCustom(cal) {
+        minP = cal[0];
+        maxP = cal[1];
+        minAmp = cal[2].toFloat();
+    }
+
+    // Loose limits that accept any deliberate up-and-down movement, for calibration.
+    function setLearn(cb) {
+        learnCb = cb;
+        if (cb != null) {
+            minP = 300;
+            maxP = 8000;
+            minAmp = 60.0;
+        }
+    }
+
     function start() {
         if (running) {
             return;
@@ -98,6 +119,7 @@ class RepCounter {
         confirmed = false;
         bad = 0;
         ampRef = minAmp;
+        perRef = 0;
         lastStep = -9999;
         steps = 0;
         stepArmed = true;
@@ -240,6 +262,10 @@ class RepCounter {
         if (recent && per < minP) {
             ok = false;
         }
+        // Same rhythm as the reps so far.
+        if (confirmed && perRef > 0 && recent && (per < 0.45 * perRef || per > 2.5 * perRef)) {
+            ok = false;
+        }
         if ((pending > 0 || confirmed) && (p2p < 0.45 * ampRef || p2p > 2.5 * ampRef)) {
             ok = false;
         }
@@ -262,6 +288,13 @@ class RepCounter {
             return;
         }
         bad = 0;
+        if (learnCb != null) {
+            learnCb.invoke(p2p, recent ? per : dur * 2);
+            return;
+        }
+        if (recent) {
+            perRef = perRef == 0 ? per : (perRef * 0.7 + per * 0.3).toNumber();
+        }
         if (pending == 0 && !confirmed) {
             ampRef = p2p;
         } else {

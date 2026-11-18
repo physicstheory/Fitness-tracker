@@ -22,6 +22,28 @@ class RepRiseView extends WatchUi.View {
         model = m;
     }
 
+    hidden var demoShown = false;
+
+    // Screenshot builds: open the menu, editor or calibration screen on top (Config.DEMO 5-7).
+    function onShow() {
+        if (demoShown || Config.DEMO < 5) {
+            return;
+        }
+        demoShown = true;
+        if (Config.DEMO == 5) {
+            openMainMenu(model);
+        } else if (Config.DEMO == 6) {
+            var v = new SetupView("Tricep Dip", false, 3, 12, 60, "START  save");
+            v.field = 1;
+            Nav.push(v, new SetupDelegate(v, new ExerciseEdit("Tricep Dip")));
+        } else {
+            var c = new CalibrateView("Tricep Dip", 0);
+            c.started = true;
+            c.amps = [1, 1];
+            Nav.push(c, new CalibrateDelegate(c));
+        }
+    }
+
     function onLayout(dc) {
         logo = WatchUi.loadResource(Rez.Drawables.Logo);
     }
@@ -95,7 +117,7 @@ class RepRiseView extends WatchUi.View {
 
         statusLine(dc, cx, y + smallH / 2, model.online ? "Phone linked" : "Phone not linked", model.online);
         y += smallH + 10;
-        pill(dc, cx, y + pillH / 2, "START  workouts", ORANGE, Graphics.COLOR_WHITE);
+        pill(dc, cx, y + pillH / 2, "START  menu", ORANGE, Graphics.COLOR_WHITE);
     }
 
     hidden function drawReady(dc, w, h) {

@@ -63,7 +63,7 @@ class WorkoutModel {
             code = (1000 + (Math.rand() % 9000).abs()).format("%d");
             Storage.setValue("code", code);
         }
-        if (Config.DEMO > 0) {
+        if (Config.DEMO > 0 && Config.DEMO < 5) {
             demo(Config.DEMO);
         }
     }
@@ -146,6 +146,10 @@ class WorkoutModel {
         holdStart = System.getTimer();
         if (!type.equals("time")) {
             counter.setProfile(local ? plan[exIndex][5] : Library.profileFor(name));
+            var cal = Store.calibration(name);
+            if (cal != null) {
+                counter.setCustom(cal);
+            }
             counter.start();
         }
         vibe(150);

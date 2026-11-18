@@ -73,7 +73,7 @@ jobs:
           Xvfb :1 -screen 0 1280x1024x24 & sleep 2
           simulator >/tmp/sim.log 2>&1 & sleep 8
           # 0 = live app (pairing screen), then the sample ready / counting / rest screens.
-          for s in 0 1 2 3 4; do
+          for s in 0 1 2 3 4 5 6 7; do
             sed -i "s/const DEMO = [0-9]*;/const DEMO = $s;/" source/Config.mc
             monkeyc -f monkey.jungle -d fr265s -o bin/sim.prg -y developer_key.der -w
             [ -n "$MP" ] && kill $MP 2>/dev/null
