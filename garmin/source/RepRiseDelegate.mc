@@ -79,3 +79,20 @@ class RepRiseDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 }
+
+class EndWorkoutDelegate extends WatchUi.ConfirmationDelegate {
+    hidden var model;
+
+    function initialize(m) {
+        ConfirmationDelegate.initialize();
+        model = m;
+    }
+
+    function onResponse(response) {
+        if (response == WatchUi.CONFIRM_YES) {
+            model.endLocal();
+            WatchUi.requestUpdate();
+        }
+        return true;
+    }
+}
